@@ -1,0 +1,35 @@
+{
+    "install":  [
+        "distrobox",
+        "podman",
+        "htop",
+        "btop",
+        "vim",
+        "openssl",
+        "langpacks-en_GB",
+        "smartmontools",
+        "firewalld",
+        "wireguard-tools",
+        "net-tools",
+        "buildah",
+        "pulseaudio-utils",
+        "alsa-firmware",
+        "git-lfs",
+        "zsh"
+    ],
+    "remove":   [
+        "libavcodec-free",
+        "libavdevice-free",
+        "libavfilter-free",
+        "libavformat-free",
+        "libavutil-free",
+        "libpostproc-free",
+        "libswresample-free",
+        "libswscale-free",
+        "mesa-va-drivers",
+        "firefox",
+        "firefox-langpacks",
+        "gnome-terminal-nautilus",
+        "gnome-terminal"
+    ]
+}

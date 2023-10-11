@@ -1,0 +1,134 @@
+name: build-stblue
+on:
+  pull_request:
+  merge_group:    
+  schedule:
+    - cron: '0 7 * * *'  # 7 am everyday
+  workflow_dispatch:
+env:
+    IMAGE_BASE_NAME: st-blue
+    IMAGE_REGISTRY: ghcr.io/${{ github.repository_owner }}
+
+jobs:
+  push-ghcr:
+    name: Build and push image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        image_name: [laptop]
+        major_version: [38, 39]
+        include:
+          - major_version: 38
+            is_stable_version: true
+            is_latest_version: false
+          - major_version: 39
+            is_stable_version: false
+            is_latest_version: true
+    steps: 
+      - name: Checkout Push to Registry action
+        uses: actions/checkout@v4.1.0
+
+      - name: Matrix Variables
+        run: |
+          echo "SOURCE_IMAGE=silverblue" >> $GITHUB_ENV
+          echo "MAJOR_VERSION="${{ matrix.major_version }}"" >> $GITHUB_ENV
+          echo "BASE_IMAGE=quay.io/fedora-ostree-desktops/silverblue" >> $GITHUB_ENV
+          echo "IMAGE_NAME=${{ format('{0}-{1}', env.IMAGE_BASE_NAME, matrix.image_name) }}" >> $GITHUB_ENV    
+
+      - name: Generate tags
+        id: generate-tags
+        shell: bash
+        run: |
+          # Generate a timestamp for creating an image version history
+          TIMESTAMP="$(date +%Y%m%d)"
+          VARIANT="${{ matrix.major_version }}"
+
+          COMMIT_TAGS=()
+          BUILD_TAGS=()
+
+          BUILD_TAGS=("${VARIANT}")
+
+          # Append matching timestamp tags to keep a version history
+          for TAG in "${BUILD_TAGS[@]}"; do
+              BUILD_TAGS+=("${TAG}-${TIMESTAMP}")
+          done
+
+          if [[ "${{ matrix.is_stable_version }}" == "true" ]]; then
+              BUILD_TAGS+=("stable")
+          fi
+          if [[ "${{ matrix.is_latest_version }}" == "true" ]]; then
+              BUILD_TAGS+=("latest")
+          fi
+              alias_tags=("${BUILD_TAGS[@]}")
+
+          echo "Generated the following build tags: "
+          for TAG in "${BUILD_TAGS[@]}"; do
+              echo "${TAG}"
+          done
+
+          echo "alias_tags=${alias_tags[*]}" >> $GITHUB_OUTPUT
+
+      - name: Build Image
+        id: build_image
+        uses: redhat-actions/buildah-build@v2.12
+        with:
+          containerfiles: |
+            ./Containerfile            
+          image: ${{ env.IMAGE_NAME }}
+          tags: |
+            ${{ steps.generate-tags.outputs.alias_tags }}            
+          build-args: |
+            IMAGE_NAME=${{ matrix.image_name }}
+            SOURCE_IMAGE=${{ env.SOURCE_IMAGE }}
+            MAJOR_VERSION=${{ env.MAJOR_VERSION }}
+            BASE_IMAGE=${{ env.BASE_IMAGE }}            
+          labels: ${{ steps.meta.outputs.labels }}
+          oci: false
+          extra-args: |
+            --target=${{ env.BUILD_TARGET }}            
+
+      - name: Push To GHCR
+        uses: redhat-actions/push-to-registry@v2.7
+        id: push
+        if: github.event_name != 'pull_request'
+        env:
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_PASSWORD: ${{ github.token }}
+        with:
+          image: ${{ steps.build_image.outputs.image }}
+          tags: ${{ steps.build_image.outputs.tags }}
+          registry: ${{ env.IMAGE_REGISTRY }}
+          username: ${{ env.REGISTRY_USER }}
+          password: ${{ env.REGISTRY_PASSWORD }}
+          extra-args: |
+            --disable-content-trust
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3.0.0
+        if: github.event_name != 'pull_request'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: sigstore/cosign-installer@v3.1.2
+        if: github.event_name != 'pull_request'
+
+      - name: Sign container image
+        if: github.event_name != 'pull_request'
+        run: |
+          cosign sign -y --key env://COSIGN_PRIVATE_KEY ${{ env.IMAGE_REGISTRY }}/${{ steps.build_image.outputs.image }}@${TAGS}
+        env:
+          TAGS: ${{ steps.push.outputs.digest }}
+          COSIGN_EXPERIMENTAL: false
+          COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
+          s
+      - name: Echo outputs
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "${{ toJSON(steps.push.outputs) }}"
