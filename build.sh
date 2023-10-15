@@ -17,6 +17,16 @@ if [[ "$RELEASE" == "39" ]]; then
     sed -i 's%free/fedora/releases%free/fedora/development%' /etc/yum.repos.d/rpmfusion-*.repo
 fi
 
+rpm-ostree override replace \
+ https://kojipkgs.fedoraproject.org//packages/pipewire/0.3.82/1.fc39/x86_64/pipewire-libs-0.3.82-1.fc39.x86_64.rpm \
+ https://kojipkgs.fedoraproject.org//packages/pipewire/0.3.82/1.fc39/x86_64/pipewire-0.3.82-1.fc39.x86_64.rpm \
+ https://kojipkgs.fedoraproject.org//packages/pipewire/0.3.82/1.fc39/x86_64/pipewire-alsa-0.3.82-1.fc39.x86_64.rpm \
+ https://kojipkgs.fedoraproject.org//packages/pipewire/0.3.82/1.fc39/x86_64/pipewire-utils-0.3.82-1.fc39.x86_64.rpm \
+ https://kojipkgs.fedoraproject.org//packages/pipewire/0.3.82/1.fc39/x86_64/pipewire-gstreamer-0.3.82-1.fc39.x86_64.rpm \
+ https://kojipkgs.fedoraproject.org//packages/pipewire/0.3.82/1.fc39/x86_64/pipewire-jack-audio-connection-kit-0.3.82-1.fc39.x86_64.rpm \
+ https://kojipkgs.fedoraproject.org//packages/pipewire/0.3.82/1.fc39/x86_64/pipewire-jack-audio-connection-kit-libs-0.3.82-1.fc39.x86_64.rpm \
+ https://kojipkgs.fedoraproject.org//packages/pipewire/0.3.82/1.fc39/x86_64/pipewire-pulseaudio-0.3.82-1.fc39.x86_64.rpm 
+
 rpm-ostree override remove \
     ${REMOVE_PACKAGES[@]} \
     $(printf -- "--install=%s " ${INSTALL_PACKAGES[@]})
