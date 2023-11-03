@@ -51,7 +51,8 @@
         "adw-gtk3-theme",
         "ffmpegthumbnailer",
         "gnome-tweaks",
-        "gnome-console"  
+        "gnome-console",
+        "tailscale"
     ],
     "remove":   [
         "libavcodec-free",
