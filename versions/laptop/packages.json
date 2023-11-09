@@ -53,7 +53,7 @@
         "gnome-tweaks",
         "gnome-console",
         "tailscale",
-	    "golang"
+	"golang"
     ],
     "remove":   [
         "libavcodec-free",
