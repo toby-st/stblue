@@ -51,12 +51,12 @@
         "adw-gtk3-theme",
         "ffmpegthumbnailer",
         "gnome-tweaks",
-        "gnome-console",
         "nvtop",
         "mock",
         "ckb-next"
     ],
     "remove":   [
+        "ffmpeg-free",
         "libavcodec-free",
         "libavdevice-free",
         "libavfilter-free",

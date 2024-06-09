@@ -51,11 +51,11 @@
         "adw-gtk3-theme",
         "ffmpegthumbnailer",
         "gnome-tweaks",
-        "gnome-console",
         "tailscale",
-	"golang"
+	    "golang"
     ],
     "remove":   [
+        "ffmpeg-free",
         "libavcodec-free",
         "libavdevice-free",
         "libavfilter-free",
