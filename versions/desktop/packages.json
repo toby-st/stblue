@@ -25,13 +25,11 @@
         "grub2-tools-extra",
         "heif-pixbuf-loader",
         "htop",
-        "intel-media-driver",
         "just",
         "kernel-devel-matched",
         "kernel-tools",
         "libheif-tools",
         "libratbag-ratbagd",
-        "libva-intel-driver",
         "libva-utils",
         "lshw",
         "mesa-va-drivers-freeworld",
@@ -53,7 +51,8 @@
         "gnome-tweaks",
         "nvtop",
         "mock",
-        "ckb-next"
+        "ckb-next",
+        "amd-ucode-firmware"
     ],
     "remove":   [
         "ffmpeg-free",
