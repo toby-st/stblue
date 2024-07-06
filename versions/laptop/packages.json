@@ -51,7 +51,10 @@
         "gnome-tweaks",
         "tailscale",
 	"golang",
-	"amd-ucode-firmware"
+	"amd-ucode-firmware",
+	"hplip-gui",
+	"printer-driver-brlaser",
+	"hplip"
     ],
     "remove":   [
         "ffmpeg-free",
