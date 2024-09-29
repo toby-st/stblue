@@ -31,7 +31,7 @@ jobs:
             is_latest_version: true
     steps: 
       - name: Checkout Push to Registry action
-        uses: actions/checkout@v4.1.0
+        uses: actions/checkout@v4.2.0
 
       - name: Matrix Variables
         run: |
@@ -75,7 +75,7 @@ jobs:
 
       - name: Build Image
         id: build_image
-        uses: redhat-actions/buildah-build@v2.12
+        uses: redhat-actions/buildah-build@v2.13
         with:
           containerfiles: |
             ./Containerfile            
@@ -93,7 +93,7 @@ jobs:
             --target=${{ env.BUILD_TARGET }}            
 
       - name: Push To GHCR
-        uses: redhat-actions/push-to-registry@v2.7
+        uses: redhat-actions/push-to-registry@v2.8
         id: push
         if: github.event_name != 'pull_request'
         env:
@@ -109,14 +109,14 @@ jobs:
             --disable-content-trust
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3.0.0
+        uses: docker/login-action@v3.3.0
         if: github.event_name != 'pull_request'
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: sigstore/cosign-installer@v3.1.2
+      - uses: sigstore/cosign-installer@v3.6.0
         if: github.event_name != 'pull_request'
 
       - name: Sign container image
