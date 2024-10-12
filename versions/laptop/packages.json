@@ -54,8 +54,7 @@
 	"amd-ucode-firmware",
 	"hplip-gui",
 	"printer-driver-brlaser",
-	"hplip",
-	"proton-vpn-gnome-desktop"
+	"hplip"
     ],
     "remove":   [
         "ffmpeg-free",
