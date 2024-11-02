@@ -54,7 +54,10 @@
 	"amd-ucode-firmware",
 	"hplip-gui",
 	"printer-driver-brlaser",
-	"hplip"
+	"hplip",
+	"pam-u2f",
+	"pamu2fcfg",
+	"fido2-tools"
     ],
     "remove":   [
         "ffmpeg-free",
