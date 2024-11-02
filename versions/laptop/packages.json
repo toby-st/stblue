@@ -59,7 +59,8 @@
 	"pamu2fcfg",
 	"fido2-tools",
 	"proton-vpn-gnome-desktop",
-	"libappindicator-gtk3"
+	"libappindicator-gtk3",
+	"gnome-shell-extension-appindicator"
     ],
     "remove":   [
         "ffmpeg-free",
