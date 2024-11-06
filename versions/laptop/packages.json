@@ -60,7 +60,8 @@
 	"fido2-tools",
 	"proton-vpn-gnome-desktop",
 	"libappindicator-gtk3",
-	"gnome-shell-extension-appindicator"
+	"gnome-shell-extension-appindicator",
+	"xhost"
     ],
     "remove":   [
         "ffmpeg-free",
