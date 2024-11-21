@@ -61,7 +61,8 @@
 	"proton-vpn-gnome-desktop",
 	"libappindicator-gtk3",
 	"gnome-shell-extension-appindicator",
-	"xhost"
+	"xhost",
+	"python-pip"
     ],
     "remove":   [
         "ffmpeg-free",
