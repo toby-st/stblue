@@ -21,9 +21,9 @@ jobs:
       fail-fast: false
       matrix:
         image_name: [laptop, desktop]
-        major_version: [40, 41]
+        major_version: [41]
         include:
-          - major_version: 40
+          - major_version: 41
             is_stable_version: true
             is_latest_version: false
           - major_version: 41
