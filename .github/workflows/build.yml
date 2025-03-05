@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image_name: [laptop, desktop]
+        image_name: [laptop]
         major_version: [41]
         include:
           - major_version: 41
