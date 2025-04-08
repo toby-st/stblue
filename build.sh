@@ -14,7 +14,7 @@ rpm-ostree install \
     https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${RELEASE}.noarch.rpm \
     https://repo.protonvpn.com/fedora-${RELEASE}-unstable/protonvpn-beta-release/protonvpn-beta-release-1.0.3-1.noarch.rpm
 
-sed -i 's/gpgcheck = 1/gpgcheck = 0/g' /etc/yum.repos.d/protonvpn-stable.repo
+sed -i 's/gpgcheck = 1/gpgcheck = 0/g' /etc/yum.repos.d/protonvpn-beta.repo
     
 rpm-ostree override remove \
     ${REMOVE_PACKAGES[@]} \
