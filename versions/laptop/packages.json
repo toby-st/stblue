@@ -61,7 +61,8 @@
 	"libappindicator-gtk3",
 	"gnome-shell-extension-appindicator",
 	"xhost",
-	"python-pip"
+	"python-pip",
+	"gvfs-nfs"
     ],
     "remove":   [
         "ffmpeg-free",
