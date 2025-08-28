@@ -65,7 +65,8 @@
         "gvfs-nfs",
         "libvirt-daemon",
         "virt-install",
-        "qemu-kvm"
+        "qemu-kvm",
+        "libvirt"
         ],
     "remove":   [
         "ffmpeg-free",
