@@ -66,7 +66,8 @@
         "libvirt-daemon",
         "virt-install",
         "qemu-kvm",
-        "libvirt"
+        "libvirt",
+        "k9s"
         ],
     "remove":   [
         "ffmpeg-free",
