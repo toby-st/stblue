@@ -69,7 +69,8 @@
         "libvirt",
         "k9s",
         "avahi",
-        "nss-mdns"
+        "nss-mdns",
+	"avahi-compat-libdns_sd"
         ],
     "remove":   [
         "ffmpeg-free",
