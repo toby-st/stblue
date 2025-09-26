@@ -67,7 +67,9 @@
         "virt-install",
         "qemu-kvm",
         "libvirt",
-        "k9s"
+        "k9s",
+        "avahi",
+        "nss-mdns"
         ],
     "remove":   [
         "ffmpeg-free",
