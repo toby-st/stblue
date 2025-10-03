@@ -21,13 +21,13 @@ jobs:
       fail-fast: false
       matrix:
         image_name: [laptop]
-        major_version: [41, 42]
+        major_version: [42, 43]
         include:
-          - major_version: 41
-            is_stable_version: true
-            is_latest_version: false
           - major_version: 42
             is_stable_version: true
+            is_latest_version: false
+          - major_version: 43
+            is_stable_version: flase
             is_latest_version: true
     steps: 
       - name: Checkout Push to Registry action
