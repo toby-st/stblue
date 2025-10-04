@@ -70,7 +70,8 @@
         "k9s",
         "avahi",
         "nss-mdns",
-	"avahi-compat-libdns_sd"
+	    "avahi-compat-libdns_sd",
+        "code"
         ],
     "remove":   [
         "ffmpeg-free",
