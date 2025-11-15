@@ -1,6 +1,6 @@
 set -ouex pipefail
 
-pipx install --system-site-packages --global solaar
+pipx install --system-site-packages --global solaar gns3-gui
 
 # Load Logitech HID kernel modules on boot
 curl https://raw.githubusercontent.com/pwr-Solaar/Solaar/refs/heads/master/rules.d-uinput/42-logitech-unify-permissions.rules > /etc/udev/rules.d/42-logitech-unify-permissions.rules
@@ -28,6 +28,12 @@ VERSION=$(curl -s https://api.github.com/repos/bitnami-labs/sealed-secrets/relea
 VERSION=$(curl -s https://api.github.com/repos/vmware-tanzu/velero/releases/latest | grep -oP '"tag_name": "\K[^"]+') \
     && curl -L "https://github.com/vmware-tanzu/velero/releases/download/${VERSION}/velero-${VERSION}-linux-amd64.tar.gz" -o /tmp/velero.tar.gz \
     && tar -xzf /tmp/velero.tar.gz -C /tmp && mv /tmp/velero-${VERSION}-linux-amd64/velero /usr/bin/
+#install lazyssh
+curl -L https://github.com/Adembc/lazyssh/releases/latest/download/lazyssh_Linux_x86_64.tar.gz -o /tmp/lazyssh.tar.gz \
+    && tar -xzf /tmp/lazyssh.tar.gz -C /tmp && mv /tmp/lazyssh /usr/bin/
+#install eval
+VERSION=$(curl -s https://api.github.com/repos/opendidac/opendidac_desktop_release/releases/latest | grep -oP '"tag_name": "\K[^"]+') \
+    && dnf install -y https://github.com/opendidac/opendidac_desktop_release/releases/download/${VERSION}/opendidac_desktop-${VERSION#v}-1.x86_64.rpm
 
 
 dnf install -y --setopt=tsflags=noscripts proton-vpn-gnome-desktop

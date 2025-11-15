@@ -1,6 +1,8 @@
 {
     "install":  [
         "bootc",
+        "iwlwifi-mvm-firmware",
+        "alsa-sof-firmware",
         "plymouth",
         "plymouth-system-theme",
         "vim",
