@@ -34,9 +34,9 @@ jobs:
 
       - name: Matrix Variables
         run: |
-          echo "MAJOR_VERSION="${{ matrix.major_version }}"" >> $GITHUB_ENV
+          echo "MAJOR_VERSION=${{ matrix.major_version }}" >> $GITHUB_ENV
           echo "BASE_IMAGE=quay.io/fedora/fedora-bootc" >> $GITHUB_ENV
-          echo "IMAGE_NAME="base" >> $GITHUB_ENV
+          echo "IMAGE_NAME=base" >> $GITHUB_ENV
 
       - name: Generate tags
         id: generate-tags
