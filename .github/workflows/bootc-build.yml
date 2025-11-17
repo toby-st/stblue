@@ -155,7 +155,8 @@ jobs:
     steps: 
       - name: Checkout Push to Registry action
         uses: actions/checkout@v5.0.0
-
+      - name: TEST
+        run: buildah images
       - name: Matrix Variables
         run: |
           echo "MAJOR_VERSION=${{ matrix.major_version }}" >> $GITHUB_ENV
