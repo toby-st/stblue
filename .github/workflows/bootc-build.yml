@@ -132,6 +132,11 @@ jobs:
         run: |
           echo "${{ toJSON(steps.push.outputs) }}"
 
+      - name: Clean up
+        run: |
+          buildah rmi --all || true
+          podman system prune -a -f || true
+
   build-push-others:
     name: Build and push workstation image
     runs-on: ubuntu-latest
@@ -153,10 +158,12 @@ jobs:
             is_stable_version: false
             is_latest_version: true
     steps: 
+      - name: Free Disk Space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
       - name: Checkout Push to Registry action
         uses: actions/checkout@v5.0.0
-      - name: TEST
-        run: buildah images
       - name: Matrix Variables
         run: |
           echo "MAJOR_VERSION=${{ matrix.major_version }}" >> $GITHUB_ENV
@@ -221,7 +228,3 @@ jobs:
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: |
           echo "${{ toJSON(steps.push.outputs) }}"
-
-
-
-
