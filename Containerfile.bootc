@@ -1,0 +1,19 @@
+ARG IMAGE_NAME="${IMAGE_NAME:-laptop}"
+ARG MAJOR_VERSION="${MAJOR_VERSION:-43}"
+ARG BASE_IMAGE="${BASE_IMAGE:-quay.io/fedora/fedora-bootc}"
+
+FROM ${BASE_IMAGE}:${MAJOR_VERSION} AS main
+ARG IMAGE_NAME="${IMAGE_NAME:-laptop}"
+COPY versions/$IMAGE_NAME/* /tmp/
+ADD bootc-build.sh /tmp/build.sh
+COPY files/ /
+
+RUN /tmp/pre.sh || echo "nothing to run"
+RUN /tmp/build.sh
+RUN /tmp/post.sh || echo "nothing to run"
+
+RUN set -xe; kver=$(ls /usr/lib/modules); env DRACUT_NO_XATTR=1 dracut -vf /usr/lib/modules/$kver/initramfs.img "$kver"
+RUN rm -rf /tmp/* /var/*
+RUN bootc container lint
+
+LABEL org.opencontainers.image.source https://github.com/toby-st/stblue

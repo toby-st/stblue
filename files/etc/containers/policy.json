@@ -23,7 +23,7 @@
             "ghcr.io/toby-st": [
                 {
                     "type": "sigstoreSigned",
-                    "keyPath": "/usr/etc/pki/containers/stblue.pub",
+                    "keyPaths": ["/usr/local/etc/stblue.pub","/usr/local/etc/2025.11.pub"],
                     "signedIdentity": {
                         "type": "matchRepository"
                     }

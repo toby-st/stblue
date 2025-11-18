@@ -1,0 +1,24 @@
+{
+    "install":  [
+        "bootc",
+        "iwlwifi-mvm-firmware",
+        "alsa-sof-firmware",
+        "plymouth",
+        "plymouth-system-theme",
+        "vim",
+        "zstd",
+        "flatpak",
+        "@virtualization",
+        "@gnome-desktop",
+        "@networkmanager-submodules",
+        "@container-management",
+        "@fonts"
+        ],
+    "remove":   [
+        "gnome-software",
+        "PackageKit",
+        "PackageKit-command-not-found",
+        "PackageKit-glib",
+        "PackageKit-gtk3-module"
+    ]
+}
