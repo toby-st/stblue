@@ -166,6 +166,39 @@ jobs:
           echo "MAJOR_VERSION=${{ matrix.major_version }}" >> $GITHUB_ENV
           echo "BASE_IMAGE=ghcr.io/toby-st/base" >> $GITHUB_ENV
           echo "IMAGE_NAME=${{ matrix.image_name }}" >> $GITHUB_ENV
+          
+      - name: Generate tags
+        id: generate-tags
+        shell: bash
+        run: |
+          # Generate a timestamp for creating an image version history
+          TIMESTAMP="$(date +%Y%m%d)"
+          VARIANT="${{ matrix.major_version }}"
+
+          COMMIT_TAGS=()
+          BUILD_TAGS=()
+
+          BUILD_TAGS=("${VARIANT}")
+
+          # Append matching timestamp tags to keep a version history
+          for TAG in "${BUILD_TAGS[@]}"; do
+              BUILD_TAGS+=("${TAG}-${TIMESTAMP}")
+          done
+
+          if [[ "${{ matrix.is_stable_version }}" == "true" ]]; then
+              BUILD_TAGS+=("stable")
+          fi
+          if [[ "${{ matrix.is_latest_version }}" == "true" ]]; then
+              BUILD_TAGS+=("latest")
+          fi
+              alias_tags=("${BUILD_TAGS[@]}")
+
+          echo "Generated the following build tags: "
+          for TAG in "${BUILD_TAGS[@]}"; do
+              echo "${TAG}"
+          done
+
+          echo "alias_tags=${alias_tags[*]}" >> $GITHUB_OUTPUT
 
       - name: Build Image
         id: build_image
@@ -175,7 +208,7 @@ jobs:
             ./Containerfile.bootc
           image: ${{ env.IMAGE_NAME }}
           tags: |
-            ${{ needs.build-push-base.outputs.alias_tags }}            
+            ${{ steps.generate-tags.outputs.alias_tags }}            
           build-args: |
             IMAGE_NAME=${{ matrix.image_name }}
             MAJOR_VERSION=${{ env.MAJOR_VERSION }}
