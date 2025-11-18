@@ -87,10 +87,7 @@ jobs:
             SOURCE_IMAGE=${{ env.SOURCE_IMAGE }}
             MAJOR_VERSION=${{ env.MAJOR_VERSION }}
             BASE_IMAGE=${{ env.BASE_IMAGE }}            
-          labels: ${{ steps.meta.outputs.labels }}
           oci: false
-          extra-args: |
-            --target=${{ env.BUILD_TARGET }}            
 
       - name: Push To GHCR
         uses: redhat-actions/push-to-registry@v2.8
