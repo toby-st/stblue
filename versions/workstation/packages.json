@@ -24,6 +24,7 @@
         "libva-intel-media-driver",
         "gcc-c++",
         "cmake",
+        "podman-compose",
         "python3-pyqt5-sip",
         "python3-qt5", 
         "python3-qt5-base",
