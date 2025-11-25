@@ -8,6 +8,8 @@
         "clang",
         "adw-gtk3-theme",
         "ffmpegthumbnailer",
+        "fuse",
+        "fuse-libs",
         "gnome-tweaks",
         "unzip",
         "smartmontools",
