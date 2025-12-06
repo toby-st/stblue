@@ -1,6 +1,9 @@
 {
     "install":  [
         "atuin",
+        "pulseaudio-utils",
+        "alsa-firmware",
+        "alsa-utils",
         "distrobox",
         "traceroute",
         "wireshark",
