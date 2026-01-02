@@ -3,6 +3,8 @@
         "bootc",
         "iwlwifi-mvm-firmware",
         "alsa-sof-firmware",
+        "glibc-langpack-en",
+        "glibc-langpack-fr",
         "plymouth",
         "plymouth-system-theme",
         "vim",
