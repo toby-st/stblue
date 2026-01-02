@@ -217,7 +217,6 @@ jobs:
       # Reprocess image using rechunker for better OCI chunking
       - name: Run Rechunker
         id: rechunk
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         uses: ublue-os/legacy-rechunk@a925083d9af7cb04b3e2a6e8c01bfa495f38b710 # v1.0.0
         with:
           rechunk: "ghcr.io/ublue-os/legacy-rechunk:v1.0.0-x86_64"
@@ -226,7 +225,6 @@ jobs:
           version: "${{ matrix.major_version }}"
 
       - name: Tag rechunked image
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: |
           for TAG in ${{ steps.generate-tags.outputs.alias_tags }}; do
             podman tag ${{ steps.rechunk.outputs.ref }} ${{ env.IMAGE_NAME }}:${TAG}
