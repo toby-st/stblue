@@ -220,7 +220,7 @@ jobs:
         uses: ublue-os/legacy-rechunk@a925083d9af7cb04b3e2a6e8c01bfa495f38b710 # v1.0.0
         with:
           rechunk: "ghcr.io/ublue-os/legacy-rechunk:v1.0.0-x86_64"
-          ref: "${{ steps.build_image.outputs.image }}:${{ matrix.major_version }}"
+          ref: "localhost/${{ steps.build_image.outputs.image }}:${{ matrix.major_version }}"
           prev-ref: "${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.major_version }}"
           version: "${{ matrix.major_version }}"
 
