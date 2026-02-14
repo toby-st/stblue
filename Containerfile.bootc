@@ -10,7 +10,8 @@ COPY files/ /
 
 RUN /tmp/pre.sh || echo "nothing to run"
 RUN /tmp/build.sh
-RUN /tmp/post.sh || echo "nothing to run"
+RUN --mount=type=secret,id=mok_priv_b64 \
+    MOK_PRIV_B64="$(cat /run/secrets/mok_priv_b64 2>/dev/null || echo '')" /tmp/post.sh || echo "nothing to run"
 
 RUN set -xe; kver=$(ls /usr/lib/modules); env DRACUT_NO_XATTR=1 dracut -vf /usr/lib/modules/$kver/initramfs.img "$kver"
 RUN rm -rf /tmp/* /var/*

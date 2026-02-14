@@ -212,8 +212,12 @@ jobs:
           build-args: |
             IMAGE_NAME=${{ matrix.image_name }}
             MAJOR_VERSION=${{ env.MAJOR_VERSION }}
-            BASE_IMAGE=${{ env.BASE_IMAGE }}            
+            BASE_IMAGE=${{ env.BASE_IMAGE }}
+          extra-args: |
+            --secret=id=mok_priv_b64,env=MOK_PRIV_B64
           oci: false
+        env:
+          MOK_PRIV_B64: ${{ secrets.MOK_PRIV_B64 }}
 
       - name: Push To GHCR
         uses: redhat-actions/push-to-registry@v2
