@@ -94,6 +94,36 @@ KERN_VER="$KERNEL_VER" /sbin/vboxconfig
 if [[ -e /var/log/vbox-setup.log ]]; then
   cat /var/log/vbox-setup.log
 fi
+
+# Sign VirtualBox kernel modules for Secure Boot
+# MOK_DER (public cert) is stored in the repo - users need it to enroll in MOK
+MOK_DER="/usr/local/etc/mok.der"
+SIGN_FILE="/usr/src/kernels/$KERNEL_VER/scripts/sign-file"
+
+if [[ -n "${MOK_PRIV_B64:-}" && -f "$MOK_DER" && -f "$SIGN_FILE" ]]; then
+  echo "Signing VirtualBox kernel modules for Secure Boot..."
+  # Decode private key from secret to temp file
+  MOK_PRIV="$(mktemp)"
+  echo "$MOK_PRIV_B64" | base64 -d > "$MOK_PRIV"
+  
+  for module in vboxdrv vboxnetflt vboxnetadp; do
+    MODULE_PATH="/lib/modules/$KERNEL_VER/misc/${module}.ko"
+    if [[ -f "$MODULE_PATH" ]]; then
+      "$SIGN_FILE" sha256 "$MOK_PRIV" "$MOK_DER" "$MODULE_PATH"
+      echo "Signed: $MODULE_PATH"
+    else
+      echo "Warning: Module not found: $MODULE_PATH"
+    fi
+  done
+  
+  # Securely remove private key
+  shred -u "$MOK_PRIV"
+else
+  echo "Warning: MOK signing keys not found or sign-file missing. Modules will be unsigned."
+  echo "  MOK_PRIV_B64: (set: $(test -n "${MOK_PRIV_B64:-}" && echo yes || echo no))"
+  echo "  MOK_DER: $MOK_DER (exists: $(test -f "$MOK_DER" && echo yes || echo no))"
+  echo "  SIGN_FILE: $SIGN_FILE (exists: $(test -f "$SIGN_FILE" && echo yes || echo no))"
+fi
 # extension pack file name
 EXTPACK_NAME="Oracle_VirtualBox_Extension_Pack-$VIRTUALBOX_VER.vbox-extpack"
 # sha256 sums URL
