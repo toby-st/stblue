@@ -39,9 +39,6 @@ VERSION=$(curl -s https://api.github.com/repos/opendidac/opendidac_desktop_relea
 
 #install virtualbox
 #script source https://github.com/ettfemnio/bazzite-virtualbox/blob/main/build.sh
-#!/bin/bash
-
-set -ouex pipefail
 
 # get current Fedora version
 RELEASE="$(rpm -E %fedora)"
