@@ -35,7 +35,8 @@ curl -L https://github.com/Adembc/lazyssh/releases/latest/download/lazyssh_Linux
 VERSION=$(curl -s https://api.github.com/repos/opendidac/opendidac_desktop_release/releases/latest | grep -oP '"tag_name": "\K[^"]+') \
     && dnf install -y https://github.com/opendidac/opendidac_desktop_release/releases/download/${VERSION}/opendidac_desktop-${VERSION#v}-1.x86_64.rpm
 
-
+#install global protect
+dnf install -y /tmp/gp_ui.rpm
 
 #install virtualbox
 #script source https://github.com/ettfemnio/bazzite-virtualbox/blob/main/build.sh
