@@ -7,6 +7,7 @@ ARG IMAGE_NAME="${IMAGE_NAME:-laptop}"
 COPY versions/$IMAGE_NAME/* /tmp/
 ADD bootc-build.sh /tmp/build.sh
 COPY files/ /
+COPY --from=ghcr.io/toby-st/gp:latest /gp_ui.rpm /tmp/gp_ui.rpm
 
 RUN /tmp/pre.sh || echo "nothing to run"
 RUN /tmp/build.sh
