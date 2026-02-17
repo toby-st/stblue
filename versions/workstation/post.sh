@@ -1,6 +1,6 @@
 set -ouex pipefail
 
-pipx install --system-site-packages --global solaar gns3-gui
+pipx install --system-site-packages --global solaar
 
 # Load Logitech HID kernel modules on boot
 curl https://raw.githubusercontent.com/pwr-Solaar/Solaar/refs/heads/master/rules.d-uinput/42-logitech-unify-permissions.rules > /etc/udev/rules.d/42-logitech-unify-permissions.rules
