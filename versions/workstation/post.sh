@@ -35,6 +35,9 @@ curl -L https://github.com/Adembc/lazyssh/releases/latest/download/lazyssh_Linux
 VERSION=$(curl -s https://api.github.com/repos/opendidac/opendidac_desktop_release/releases/latest | grep -oP '"tag_name": "\K[^"]+') \
     && dnf install -y https://github.com/opendidac/opendidac_desktop_release/releases/download/${VERSION}/opendidac_desktop-${VERSION#v}-1.x86_64.rpm
 
+#fix read-only dir for global protect
+mkdir /var/paloaltonetworks
+ln -s /var/paloaltonetworks /opt/paloaltonetworks
 #install global protect
 dnf install -y /tmp/gp_ui.rpm
 
