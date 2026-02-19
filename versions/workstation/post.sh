@@ -41,6 +41,9 @@ ln -s /var/paloaltonetworks /opt/paloaltonetworks
 #install global protect
 dnf install -y /tmp/gp_ui.rpm
 
+#install EVE-NG client tools
+wget -qO- https://raw.githubusercontent.com/SmartFinn/eve-ng-integration/master/install.sh | sh
+
 #install virtualbox
 #script source https://github.com/ettfemnio/bazzite-virtualbox/blob/main/build.sh
 
