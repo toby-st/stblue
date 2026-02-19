@@ -27,6 +27,7 @@
         "libva-utils",
         "libva-intel-media-driver",
         "gcc-c++",
+        "gdb",
         "gns3-gui",
         "gns3-server",
         "cmake",
