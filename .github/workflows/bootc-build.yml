@@ -236,6 +236,10 @@ jobs:
         env:
           MOK_PRIV_B64: ${{ secrets.MOK_PRIV_B64 }}
 
+      - name: Configure sigstore attachments
+        run: |
+          sudo cp files/etc/containers/registries.d/toby-st.yaml /etc/containers/registries.d/toby-st.yaml
+
       - name: Push To GHCR
         id: push
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
