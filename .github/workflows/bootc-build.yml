@@ -221,11 +221,16 @@ jobs:
           PRIMARY_TAG="${TAGS[0]}"
           OUTPUT_IMAGE="${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${PRIMARY_TAG}"
 
-          sudo rpm-ostree compose build-chunked-oci \
-            --bootc \
-            --format-version=2 \
-            --from=containers-storage:${{ env.IMAGE_NAME }} \
-            --output=containers-storage:${OUTPUT_IMAGE}
+          sudo podman run --rm \
+            --privileged \
+            --security-opt label=disable \
+            -v /var/lib/containers/storage:/var/lib/containers/storage \
+            ${{ env.IMAGE_NAME }} \
+            rpm-ostree compose build-chunked-oci \
+              --bootc \
+              --format-version=2 \
+              --from=containers-storage:${{ env.IMAGE_NAME }} \
+              --output=containers-storage:${OUTPUT_IMAGE}
 
           # Apply all remaining alias tags
           for TAG in "${TAGS[@]:1}"; do
