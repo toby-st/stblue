@@ -238,6 +238,7 @@ jobs:
 
       - name: Configure sigstore attachments
         run: |
+          sudo mkdir -p /etc/containers/registries.d
           sudo cp files/etc/containers/registries.d/toby-st.yaml /etc/containers/registries.d/toby-st.yaml
 
       - name: Push To GHCR
