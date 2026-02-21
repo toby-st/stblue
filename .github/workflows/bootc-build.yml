@@ -203,6 +203,7 @@ jobs:
       - name: Build Image
         id: build_image
         run: |
+          set -ouex pipefail
           TAGS=(${{ steps.generate-tags.outputs.alias_tags }})
           RECHUNKED="${{ env.IMAGE_NAME }}:rechunked"
 
