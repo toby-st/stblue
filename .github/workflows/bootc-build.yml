@@ -203,6 +203,10 @@ jobs:
       - name: Build Image
         id: build_image
         run: |
+          TAGS=(${{ steps.generate-tags.outputs.alias_tags }})
+          PRIMARY_TAG="${TAGS[0]}"
+          OUTPUT_IMAGE="${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${PRIMARY_TAG}"
+
           sudo podman build \
             --build-arg IMAGE_NAME=${{ matrix.image_name }} \
             --build-arg MAJOR_VERSION=${{ env.MAJOR_VERSION }} \
@@ -211,15 +215,6 @@ jobs:
             -t ${{ env.IMAGE_NAME }} \
             -f ./Containerfile.bootc \
             .
-        env:
-          MOK_PRIV_B64: ${{ secrets.MOK_PRIV_B64 }}
-
-      - name: Rechunk Image
-        id: rechunk
-        run: |
-          TAGS=(${{ steps.generate-tags.outputs.alias_tags }})
-          PRIMARY_TAG="${TAGS[0]}"
-          OUTPUT_IMAGE="${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${PRIMARY_TAG}"
 
           sudo podman run --rm \
             --privileged \
@@ -229,16 +224,17 @@ jobs:
             rpm-ostree compose build-chunked-oci \
               --bootc \
               --format-version=2 \
-              --from=containers-storage:${{ env.IMAGE_NAME }} \
-              --output=containers-storage:${OUTPUT_IMAGE}
+              --from=localhost/${{ env.IMAGE_NAME }} \
+              --output=:${OUTPUT_IMAGE}
 
-          # Apply all remaining alias tags
           for TAG in "${TAGS[@]:1}"; do
             sudo podman tag "${OUTPUT_IMAGE}" "${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG}"
           done
 
           echo "image=${{ env.IMAGE_NAME }}" >> $GITHUB_OUTPUT
           echo "tags=${TAGS[*]}" >> $GITHUB_OUTPUT
+        env:
+          MOK_PRIV_B64: ${{ secrets.MOK_PRIV_B64 }}
 
       - name: Push To GHCR
         uses: redhat-actions/push-to-registry@v2
@@ -248,8 +244,8 @@ jobs:
           REGISTRY_USER: ${{ github.actor }}
           REGISTRY_PASSWORD: ${{ github.token }}
         with:
-          image: ${{ steps.rechunk.outputs.image }}
-          tags: ${{ steps.rechunk.outputs.tags }}
+          image: ${{ steps.build_image.outputs.image }}
+          tags: ${{ steps.build_image.outputs.tags }}
           registry: ${{ env.IMAGE_REGISTRY }}
           username: ${{ env.REGISTRY_USER }}
           password: ${{ env.REGISTRY_PASSWORD }}
@@ -270,7 +266,7 @@ jobs:
       - name: Sign container image
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: |
-          cosign sign -y --key env://COSIGN_PRIVATE_KEY ${{ env.IMAGE_REGISTRY }}/${{ steps.rechunk.outputs.image }}@${TAGS}
+          cosign sign -y --key env://COSIGN_PRIVATE_KEY ${{ env.IMAGE_REGISTRY }}/${{ steps.build_image.outputs.image }}@${TAGS}
         env:
           TAGS: ${{ steps.push.outputs.digest }}
           COSIGN_EXPERIMENTAL: false
