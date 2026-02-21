@@ -202,20 +202,36 @@ jobs:
 
       - name: Build Image
         id: build_image
-        uses: redhat-actions/buildah-build@v2
-        with:
-          containerfiles: |
-            ./Containerfile.bootc
-          image: ${{ env.IMAGE_NAME }}
-          tags: |
-            ${{ steps.generate-tags.outputs.alias_tags }}            
-          build-args: |
-            IMAGE_NAME=${{ matrix.image_name }}
-            MAJOR_VERSION=${{ env.MAJOR_VERSION }}
-            BASE_IMAGE=${{ env.BASE_IMAGE }}
-          extra-args: |
-            --secret=id=mok_priv_b64,env=MOK_PRIV_B64
-          oci: false
+        run: |
+          TAGS=(${{ steps.generate-tags.outputs.alias_tags }})
+          RECHUNKED="${{ env.IMAGE_NAME }}:rechunked"
+
+          sudo podman build \
+            --build-arg IMAGE_NAME=${{ matrix.image_name }} \
+            --build-arg MAJOR_VERSION=${{ env.MAJOR_VERSION }} \
+            --build-arg BASE_IMAGE=${{ env.BASE_IMAGE }} \
+            --secret id=mok_priv_b64,env=MOK_PRIV_B64 \
+            -t ${{ env.IMAGE_NAME }} \
+            -f ./Containerfile.bootc \
+            .
+
+          sudo podman run --rm \
+            --privileged \
+            --security-opt label=disable \
+            -v /var/lib/containers/storage:/var/lib/containers/storage \
+            ${{ env.IMAGE_NAME }} \
+            rpm-ostree compose build-chunked-oci \
+              --bootc \
+              --format-version=2 \
+              --from=localhost/${{ env.IMAGE_NAME }} \
+              --output=containers-storage:localhost/${RECHUNKED}
+
+          for TAG in "${TAGS[@]}"; do
+            sudo podman tag "localhost/${RECHUNKED}" "${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG}"
+          done
+
+          echo "image=${{ env.IMAGE_NAME }}" >> $GITHUB_OUTPUT
+          echo "tags=${TAGS[*]}" >> $GITHUB_OUTPUT
         env:
           MOK_PRIV_B64: ${{ secrets.MOK_PRIV_B64 }}
 
