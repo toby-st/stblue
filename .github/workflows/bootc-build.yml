@@ -204,8 +204,7 @@ jobs:
         id: build_image
         run: |
           TAGS=(${{ steps.generate-tags.outputs.alias_tags }})
-          PRIMARY_TAG="${TAGS[0]}"
-          OUTPUT_IMAGE="${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${PRIMARY_TAG}"
+          RECHUNKED="${{ env.IMAGE_NAME }}:rechunked"
 
           sudo podman build \
             --build-arg IMAGE_NAME=${{ matrix.image_name }} \
@@ -225,10 +224,10 @@ jobs:
               --bootc \
               --format-version=2 \
               --from=localhost/${{ env.IMAGE_NAME }} \
-              --output=:${OUTPUT_IMAGE}
+              --output=containers-storage:localhost/${RECHUNKED}
 
-          for TAG in "${TAGS[@]:1}"; do
-            sudo podman tag "${OUTPUT_IMAGE}" "${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG}"
+          for TAG in "${TAGS[@]}"; do
+            sudo podman tag "localhost/${RECHUNKED}" "${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG}"
           done
 
           echo "image=${{ env.IMAGE_NAME }}" >> $GITHUB_OUTPUT
