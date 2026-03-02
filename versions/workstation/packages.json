@@ -1,5 +1,5 @@
 {
-    "install":  [
+    "install": [
         "atuin",
         "pulseaudio-utils",
         "alsa-firmware",
@@ -33,7 +33,7 @@
         "cmake",
         "podman-compose",
         "python3-pyqt5-sip",
-        "python3-qt5", 
+        "python3-qt5",
         "python3-qt5-base",
         "git",
         "git-lfs",
@@ -46,9 +46,10 @@
         "k9s",
         "pipx",
         "rsync",
+        "tailscale",
         "zsh"
-        ],
-    "remove":   [
+    ],
+    "remove": [
         "gnome-software",
         "PackageKit",
         "PackageKit-command-not-found",
