@@ -159,7 +159,12 @@ EOF
 
 # install displaylink driver (including evdi)
 RPM_URL=$(curl -s https://api.github.com/repos/displaylink-rpm/displaylink-rpm/releases/latest | grep -oP "https://github\.com/displaylink-rpm/displaylink-rpm/releases/download/[^/]+/fedora-${RELEASE}-[^\"]+\.x86_64\.rpm") \
-    && dnf install -y "$RPM_URL"
+    && dnf install -y "$RPM_URL" || true
+
+# build evdi kernel module
+EVDI_VER="$(ls /usr/src | grep -oP '(?<=evdi-).+')" \
+    && dkms build -m evdi -v "$EVDI_VER" -k "$KERNEL_VER" && dkms autoinstall --verbose --kernelver "$KERNEL_VER"
+
 # copy signing key to /usr
 cp /var/lib/dkms/mok.pub /usr/local/etc/dkms.pub
 
