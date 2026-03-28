@@ -157,6 +157,12 @@ vboxnetflt
 vboxnetflt
 EOF
 
+# install displaylink driver (including evdi)
+RPM_URL=$(curl -s https://api.github.com/repos/displaylink-rpm/displaylink-rpm/releases/latest | grep -oP "https://github\.com/displaylink-rpm/displaylink-rpm/releases/download/[^/]+/fedora-${RELEASE}-[^\"]+\.x86_64\.rpm") \
+    && dnf install -y "$RPM_URL"
+# copy signing key to /usr
+cp /var/lib/dkms/mok.pub /usr/local/etc/dkms.pub
+
 dnf install -y --setopt=tsflags=noscripts proton-vpn-gnome-desktop
 dnf -y autoremove
 dnf clean all
