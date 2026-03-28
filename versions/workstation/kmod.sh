@@ -138,8 +138,5 @@ else
   echo "Warning: MOK signing keys not found or sign-file missing. evdi module will be unsigned."
 fi
 
-# copy signing key to /usr
-cp /var/lib/dkms/mok.pub /usr/local/etc/dkms.pub
-
 dnf -y autoremove
 dnf clean all

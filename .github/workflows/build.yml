@@ -1,13 +1,11 @@
 name: build-stblue
 on:
   pull_request:
-  merge_group:    
-  schedule:
-    - cron: '0 7 * * *'  # 7 am everyday
+  merge_group:
   workflow_dispatch:
 env:
-    IMAGE_BASE_NAME: stblue
-    IMAGE_REGISTRY: ghcr.io/${{ github.repository_owner }}
+  IMAGE_BASE_NAME: stblue
+  IMAGE_REGISTRY: ghcr.io/${{ github.repository_owner }}
 
 jobs:
   push-ghcr:
@@ -29,7 +27,7 @@ jobs:
           - major_version: 43
             is_stable_version: flase
             is_latest_version: true
-    steps: 
+    steps:
       - name: Checkout Push to Registry action
         uses: actions/checkout@v4.2.2
 
@@ -38,7 +36,7 @@ jobs:
           echo "SOURCE_IMAGE=silverblue" >> $GITHUB_ENV
           echo "MAJOR_VERSION="${{ matrix.major_version }}"" >> $GITHUB_ENV
           echo "BASE_IMAGE=quay.io/fedora-ostree-desktops/silverblue" >> $GITHUB_ENV
-          echo "IMAGE_NAME=${{ format('{0}-{1}', env.IMAGE_BASE_NAME, matrix.image_name) }}" >> $GITHUB_ENV    
+          echo "IMAGE_NAME=${{ format('{0}-{1}', env.IMAGE_BASE_NAME, matrix.image_name) }}" >> $GITHUB_ENV
 
       - name: Generate tags
         id: generate-tags
@@ -78,15 +76,15 @@ jobs:
         uses: redhat-actions/buildah-build@v2.13
         with:
           containerfiles: |
-            ./Containerfile            
+            ./Containerfile
           image: ${{ env.IMAGE_NAME }}
           tags: |
-            ${{ steps.generate-tags.outputs.alias_tags }}            
+            ${{ steps.generate-tags.outputs.alias_tags }}
           build-args: |
             IMAGE_NAME=${{ matrix.image_name }}
             SOURCE_IMAGE=${{ env.SOURCE_IMAGE }}
             MAJOR_VERSION=${{ env.MAJOR_VERSION }}
-            BASE_IMAGE=${{ env.BASE_IMAGE }}            
+            BASE_IMAGE=${{ env.BASE_IMAGE }}
           oci: false
 
       - name: Push To GHCR
