@@ -1,12 +1,12 @@
 name: build-bootc
 on:
   pull_request:
-  merge_group:    
+  merge_group:
   schedule:
-    - cron: '0 3 * * *'  # 3 am everyday
+    - cron: "0 3 * * *" # 3 am everyday
   workflow_dispatch:
 env:
-    IMAGE_REGISTRY: ghcr.io/${{ github.repository_owner }}
+  IMAGE_REGISTRY: ghcr.io/${{ github.repository_owner }}
 
 jobs:
   build-push-base:
@@ -30,7 +30,7 @@ jobs:
           - major_version: 43
             is_stable_version: false
             is_latest_version: true
-    steps: 
+    steps:
       - name: Checkout Push to Registry action
         uses: actions/checkout@v5.0.0
 
@@ -81,11 +81,11 @@ jobs:
             ./Containerfile.bootc
           image: ${{ env.IMAGE_NAME }}
           tags: |
-            ${{ steps.generate-tags.outputs.alias_tags }}            
+            ${{ steps.generate-tags.outputs.alias_tags }}
           build-args: |
             IMAGE_NAME=${{ matrix.image_name }}
             MAJOR_VERSION=${{ env.MAJOR_VERSION }}
-            BASE_IMAGE=${{ env.BASE_IMAGE }}            
+            BASE_IMAGE=${{ env.BASE_IMAGE }}
           oci: false
 
       - name: Push To GHCR
@@ -114,7 +114,7 @@ jobs:
 
       - uses: sigstore/cosign-installer@v4.0.0
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-      
+
       - name: Sign container image
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: |
@@ -154,7 +154,7 @@ jobs:
           - major_version: 43
             is_stable_version: false
             is_latest_version: true
-    steps: 
+    steps:
       - name: Free Disk Space
         uses: jlumbroso/free-disk-space@main
         with:
@@ -166,7 +166,7 @@ jobs:
           echo "MAJOR_VERSION=${{ matrix.major_version }}" >> $GITHUB_ENV
           echo "BASE_IMAGE=ghcr.io/toby-st/base" >> $GITHUB_ENV
           echo "IMAGE_NAME=${{ matrix.image_name }}" >> $GITHUB_ENV
-          
+
       - name: Generate tags
         id: generate-tags
         shell: bash
@@ -227,8 +227,15 @@ jobs:
               --from=localhost/${{ env.IMAGE_NAME }} \
               --output=containers-storage:localhost/${RECHUNKED}
 
+          sudo podman build \
+            --build-arg BASE_IMAGE=localhost/${RECHUNKED} \
+            --secret id=mok_priv_b64,env=MOK_PRIV_B64 \
+            -t ${{ env.IMAGE_NAME }}:kmod \
+            -f ./Containerfile.kmod \
+            .
+
           for TAG in "${TAGS[@]}"; do
-            sudo podman tag "localhost/${RECHUNKED}" "${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG}"
+            sudo podman tag "localhost/${{ env.IMAGE_NAME }}:kmod" "${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG}"
           done
 
           echo "image=${{ env.IMAGE_NAME }}" >> $GITHUB_OUTPUT
