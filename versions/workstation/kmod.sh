@@ -133,8 +133,6 @@ if [[ -n "${MOK_PRIV_B64:-}" && -f "$MOK_DER" && -f "$SIGN_FILE" ]]; then
   if [[ -f "$MODULE_PATH" ]]; then
     "$SIGN_FILE" sha256 "$MOK_PRIV" "$MOK_DER" "$MODULE_PATH"
     echo "Signed: $MODULE_PATH"
-    # Re-compress after signing
-    xz "$MODULE_PATH"
   else
     echo "Warning: evdi module not found: $MODULE_PATH"
   fi
