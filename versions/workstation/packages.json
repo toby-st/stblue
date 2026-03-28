@@ -47,6 +47,7 @@
         "pipx",
         "rsync",
         "tailscale",
+        "tbtools",
         "zsh"
     ],
     "remove": [
