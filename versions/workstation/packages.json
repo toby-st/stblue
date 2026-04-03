@@ -28,6 +28,7 @@
         "libratbag-ratbagd",
         "libva-utils",
         "libva-intel-media-driver",
+        "opentofu",
         "gcc-c++",
         "gdb",
         "gns3-gui",
