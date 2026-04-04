@@ -1,5 +1,6 @@
 {
     "install": [
+        "ansible",
         "atuin",
         "pulseaudio-utils",
         "alsa-firmware",
@@ -22,6 +23,7 @@
         "firewalld",
         "clang",
         "python-pip",
+        "python3-ansible-lint",
         "fprintd",
         "helm",
         "kubectl",
