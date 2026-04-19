@@ -25,8 +25,8 @@ VERSION=$(curl -s https://api.github.com/repos/bitnami-labs/sealed-secrets/relea
     && curl -L "https://github.com/bitnami-labs/sealed-secrets/releases/download/${VERSION}/kubeseal-${VERSION#v}-linux-amd64.tar.gz" -o /tmp/kubeseal.tar.gz \
     && tar -xzf /tmp/kubeseal.tar.gz -C /tmp && mv /tmp/kubeseal /usr/bin/
 #install velero
-VERSION=$(curl -s https://api.github.com/repos/vmware-tanzu/velero/releases/latest | grep -oP '"tag_name": "\K[^"]+') \
-    && curl -L "https://github.com/vmware-tanzu/velero/releases/download/${VERSION}/velero-${VERSION}-linux-amd64.tar.gz" -o /tmp/velero.tar.gz \
+VERSION=$(curl -s https://api.github.com/repos/velero-io/velero/releases/latest | grep -oP '"tag_name": "\K[^"]+') \
+    && curl -L "https://github.com/velero-io/velero/releases/download/${VERSION}/velero-${VERSION}-linux-amd64.tar.gz" -o /tmp/velero.tar.gz \
     && tar -xzf /tmp/velero.tar.gz -C /tmp && mv /tmp/velero-${VERSION}-linux-amd64/velero /usr/bin/
 #install lazyssh
 curl -L https://github.com/Adembc/lazyssh/releases/latest/download/lazyssh_Linux_x86_64.tar.gz -o /tmp/lazyssh.tar.gz \
