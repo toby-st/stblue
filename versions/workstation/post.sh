@@ -31,6 +31,9 @@ VERSION=$(curl -s https://api.github.com/repos/velero-io/velero/releases/latest 
 #install lazyssh
 curl -L https://github.com/Adembc/lazyssh/releases/latest/download/lazyssh_Linux_x86_64.tar.gz -o /tmp/lazyssh.tar.gz \
     && tar -xzf /tmp/lazyssh.tar.gz -C /tmp && mv /tmp/lazyssh /usr/bin/
+#install krew
+curl -L https://github.com/kubernetes-sigs/krew/releases/latest/download/krew-linux_amd64.tar.gz -o /tmp/krew.tar.gz \
+    && tar -xzf /tmp/krew.tar.gz -C /tmp && mv /tmp/krew-linux_amd64  /usr/bin/kubectl-krew
 #install eval
 VERSION=$(curl -s https://api.github.com/repos/opendidac/opendidac_desktop_release/releases/latest | grep -oP '"tag_name": "\K[^"]+') \
     && dnf install -y https://github.com/opendidac/opendidac_desktop_release/releases/download/${VERSION}/opendidac_desktop-${VERSION#v}-1.x86_64.rpm
