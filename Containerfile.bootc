@@ -1,9 +1,12 @@
-ARG IMAGE_NAME="${IMAGE_NAME:-laptop}"
+ARG IMAGE_NAME="${IMAGE_NAME:-workstation}"
 ARG MAJOR_VERSION="${MAJOR_VERSION:-43}"
 ARG BASE_IMAGE="${BASE_IMAGE:-quay.io/fedora/fedora-bootc}"
+ARG KMOD_IMAGE="${KMOD_IMAGE:-ghcr.io/toby-st/stblue/kmod:latest}"
+
+FROM ${KMOD_IMAGE} AS kmod
 
 FROM ${BASE_IMAGE}:${MAJOR_VERSION} AS main
-ARG IMAGE_NAME="${IMAGE_NAME:-laptop}"
+ARG IMAGE_NAME
 COPY versions/$IMAGE_NAME/* /tmp/
 ADD bootc-build.sh /tmp/build.sh
 COPY files/ /
@@ -11,11 +14,26 @@ COPY --from=ghcr.io/toby-st/gp:latest /gp_ui.rpm /tmp/gp_ui.rpm
 
 RUN /tmp/pre.sh || echo "nothing to run"
 RUN /tmp/build.sh
-RUN --mount=type=secret,id=mok_priv_b64 \
-    MOK_PRIV_B64="$(cat /run/secrets/mok_priv_b64 2>/dev/null || echo '')" /tmp/post.sh || echo "nothing to run"
+RUN /tmp/post.sh || echo "nothing to run"
 
-RUN set -xe; kver=$(ls /usr/lib/modules); env DRACUT_NO_XATTR=1 dracut -vf /usr/lib/modules/$kver/initramfs.img "$kver"
+# Abort if the kmod image was built for a different kernel than this image
+COPY --from=kmod /etc/kmod/kver /tmp/kmod-kver
+RUN set -xe; \
+    kver=$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-core | head -1); \
+    kmod_kver=$(cat /tmp/kmod-kver); \
+    if [ "$kmod_kver" != "$kver" ]; then \
+    echo "kmod image built for kernel $kmod_kver, workstation has $kver — rebuild the kmod image"; \
+    exit 1; \
+    fi
+
+# Pre-built signed kernel modules from the kmod image
+COPY --from=kmod /lib/modules/ /lib/modules/
+
+RUN set -xe; \
+    kver=$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-core | head -1); \
+    depmod -a "$kver"; \
+    env DRACUT_NO_XATTR=1 dracut -vf /usr/lib/modules/$kver/initramfs.img "$kver"
 RUN rm -rf /tmp/*
 RUN bootc container lint
 
-LABEL org.opencontainers.image.source https://github.com/toby-st/stblue
+LABEL org.opencontainers.image.source=https://github.com/toby-st/stblue

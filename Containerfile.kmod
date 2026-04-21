@@ -1,6 +1,7 @@
-ARG BASE_IMAGE="localhost/workstation:rechunked"
+ARG BASE_IMAGE="quay.io/fedora/fedora-bootc"
+ARG MAJOR_VERSION="43"
 
-FROM ${BASE_IMAGE}
+FROM ${BASE_IMAGE}:${MAJOR_VERSION} AS builder
 
 COPY versions/workstation/kmod.sh /tmp/kmod.sh
 COPY files/ /
@@ -8,6 +9,9 @@ COPY files/ /
 RUN --mount=type=secret,id=mok_priv_b64 \
     MOK_PRIV_B64="$(cat /run/secrets/mok_priv_b64 2>/dev/null || echo '')" /tmp/kmod.sh
 
-RUN set -xe; kver=$(ls /usr/lib/modules); env DRACUT_NO_XATTR=1 dracut -vf /usr/lib/modules/$kver/initramfs.img "$kver"
-RUN rm -rf /tmp/*
-RUN bootc container lint
+FROM scratch
+
+COPY --from=builder /lib/modules/ /lib/modules/
+COPY --from=builder /etc/kmod/kver /etc/kmod/kver
+
+LABEL org.opencontainers.image.source=https://github.com/toby-st/stblue
