@@ -1,7 +1,7 @@
 ARG IMAGE_NAME="${IMAGE_NAME:-workstation}"
 ARG MAJOR_VERSION="${MAJOR_VERSION:-43}"
 ARG BASE_IMAGE="${BASE_IMAGE:-quay.io/fedora/fedora-bootc}"
-ARG KMOD_IMAGE="${KMOD_IMAGE:-ghcr.io/toby-st/kmod:latest}"
+ARG KMOD_IMAGE="${KMOD_IMAGE:-ghcr.io/toby-st/stblue/kmod:latest}"
 
 FROM ${KMOD_IMAGE} AS kmod
 

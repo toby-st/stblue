@@ -74,13 +74,20 @@ jobs:
       - name: Resolve kmod image tag
         run: |
           set -ouex pipefail
-          KMOD_LATEST="ghcr.io/${{ github.repository_owner }}/kmod:latest"
-          sudo podman pull "$KMOD_LATEST"
-          CID=$(sudo podman create "$KMOD_LATEST")
-          sudo podman cp "${CID}:/etc/kmod/kver" /tmp/kmod-kver
-          sudo podman rm "${CID}"
-          KVER=$(cat /tmp/kmod-kver)
-          echo "KMOD_IMAGE=ghcr.io/${{ github.repository_owner }}/kmod:${KVER}" >> $GITHUB_ENV
+
+          # Kernel version comes from the base image this build will actually
+          # use — not from kmod:latest, which races with the nightly rebuild.
+          sudo podman pull "${BASE_IMAGE}:${MAJOR_VERSION}"
+          KVER=$(sudo podman run --rm --entrypoint=/usr/bin/rpm \
+            "${BASE_IMAGE}:${MAJOR_VERSION}" \
+            -q --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}' kernel-core)
+
+          KMOD_IMAGE="ghcr.io/${{ github.repository_owner }}/stblue/kmod:${KVER}"
+          if ! sudo podman manifest inspect "$KMOD_IMAGE" >/dev/null; then
+            echo "::error::kmod image $KMOD_IMAGE not found — run the build-kmod workflow for kernel ${KVER}"
+            exit 1
+          fi
+          echo "KMOD_IMAGE=${KMOD_IMAGE}" >> $GITHUB_ENV
 
       - name: Build Image
         id: build_image
