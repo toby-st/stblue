@@ -19,8 +19,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image_name: [workstation]
-        major_version: [43]
+        image_name: [ workstation ]
+        major_version: [ 43 ]
         include:
           - major_version: 43
             is_stable_version: false
@@ -71,6 +71,21 @@ jobs:
 
           echo "alias_tags=${alias_tags[*]}" >> $GITHUB_OUTPUT
 
+      - name: Log in to GHCR (for pulling kmod image)
+        run: |
+          echo "${{ github.token }}" | sudo podman login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Resolve kmod image tag
+        run: |
+          set -ouex pipefail
+          KMOD_LATEST="ghcr.io/${{ github.repository_owner }}/kmod:latest"
+          sudo podman pull "$KMOD_LATEST"
+          CID=$(sudo podman create "$KMOD_LATEST")
+          sudo podman cp "${CID}:/etc/kmod/kver" /tmp/kmod-kver
+          sudo podman rm "${CID}"
+          KVER=$(cat /tmp/kmod-kver)
+          echo "KMOD_IMAGE=ghcr.io/${{ github.repository_owner }}/kmod:${KVER}" >> $GITHUB_ENV
+
       - name: Build Image
         id: build_image
         run: |
@@ -82,7 +97,7 @@ jobs:
             --build-arg IMAGE_NAME=${{ matrix.image_name }} \
             --build-arg MAJOR_VERSION=${{ env.MAJOR_VERSION }} \
             --build-arg BASE_IMAGE=${{ env.BASE_IMAGE }} \
-            --secret id=mok_priv_b64,env=MOK_PRIV_B64 \
+            --build-arg KMOD_IMAGE=${{ env.KMOD_IMAGE }} \
             -t ${{ env.IMAGE_NAME }} \
             -f ./Containerfile.bootc \
             .
@@ -98,21 +113,12 @@ jobs:
               --from=localhost/${{ env.IMAGE_NAME }} \
               --output=containers-storage:localhost/${RECHUNKED}
 
-          sudo -E podman build \
-            --build-arg BASE_IMAGE=localhost/${RECHUNKED} \
-            --secret id=mok_priv_b64,env=MOK_PRIV_B64 \
-            -t ${{ env.IMAGE_NAME }}:kmod \
-            -f ./Containerfile.kmod \
-            .
-
           for TAG in "${TAGS[@]}"; do
-            sudo podman tag "localhost/${{ env.IMAGE_NAME }}:kmod" "${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG}"
+            sudo podman tag "localhost/${RECHUNKED}" "${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG}"
           done
 
           echo "image=${{ env.IMAGE_NAME }}" >> $GITHUB_OUTPUT
           echo "tags=${TAGS[*]}" >> $GITHUB_OUTPUT
-        env:
-          MOK_PRIV_B64: ${{ secrets.MOK_PRIV_B64 }}
 
       - name: Configure sigstore attachments
         run: |
