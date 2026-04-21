@@ -77,20 +77,20 @@ jobs:
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: |
           set -ouex pipefail
-          echo "${{ github.token }}" | sudo podman login ghcr.io -u ${{ github.actor }} --password-stdin
+          echo "${{ github.token }}" | podman login ghcr.io -u ${{ github.actor }} --password-stdin
 
           echo "${KEY_2025_11_B64}" | base64 -d > /tmp/cosign.key
 
           TAGS=(${{ steps.build_image.outputs.tags }})
           for TAG in "${TAGS[@]}"; do
-            sudo podman push \
+            podman push \
               --sign-by-sigstore-private-key=/tmp/cosign.key \
               "${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG}"
           done
 
           rm -f /tmp/cosign.key
 
-          DIGEST=$(sudo podman inspect --format='{{index .RepoDigests 0}}' \
+          DIGEST=$(podman inspect --format='{{index .RepoDigests 0}}' \
             "${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${TAGS[0]}" \
             | cut -d@ -f2)
           echo "digest=${DIGEST}" >> $GITHUB_OUTPUT
