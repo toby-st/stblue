@@ -83,7 +83,7 @@ jobs:
             -q --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}' kernel-core)
 
           KMOD_IMAGE="ghcr.io/${{ github.repository_owner }}/stblue/kmod:${KVER}"
-          if ! sudo podman manifest inspect "$KMOD_IMAGE" >/dev/null; then
+          if ! sudo podman pull "$KMOD_IMAGE"; then
             echo "::error::kmod image $KMOD_IMAGE not found — run the build-kmod workflow for kernel ${KVER}"
             exit 1
           fi
