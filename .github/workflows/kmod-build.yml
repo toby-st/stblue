@@ -48,8 +48,9 @@ jobs:
             -f ./Containerfile.kmod \
             .
 
-          # Scratch image has no shell, so use create+cp to read the kver file
-          CID=$(podman create ${{ env.IMAGE_NAME }}:build)
+          # Scratch image has no shell/entrypoint, but podman create still
+          # requires a command — pass a dummy one since we only cp from it.
+          CID=$(podman create --entrypoint=/ ${{ env.IMAGE_NAME }}:build)
           podman cp "${CID}:/etc/kmod/kver" /tmp/kver
           podman rm "${CID}"
           KERNEL_VER=$(cat /tmp/kver)
