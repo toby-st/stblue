@@ -40,6 +40,8 @@
         "iwlwifi-mvm-firmware",
         "java",
         "k9s",
+        "kernel-devel",
+        "kernel-devel-matched",
         "kubectl",
         "libappindicator-gtk3",
         "libratbag-ratbagd",

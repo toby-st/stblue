@@ -8,7 +8,7 @@ rm /usr/lib/systemd/system/flatpak-add-fedora-repos.service
 
 # install displaylink userspace (evdi module is shipped via the kmod image)
 RPM_URL=$(curl -s https://api.github.com/repos/displaylink-rpm/displaylink-rpm/releases/latest | grep -oP "https://github\.com/displaylink-rpm/displaylink-rpm/releases/download/[^/]+/fedora-${RELEASE}-[^\"]+\.x86_64\.rpm") \
-    && dnf install -y --setopt=tsflags=noscripts "$RPM_URL"
+    && dnf install -y --setopt=tsflags=noscripts --exclude='kernel*' "$RPM_URL"
 
 pipx install --system-site-packages --global solaar
 
