@@ -522,9 +522,8 @@ jobs:
             # datasource can also manage this (datasource=github-releases
             # depName=oras-project/oras) if you add a hint comment.
             ORAS_VERSION: "1.2.2"
-            # Move the :latest tag only on main-branch or v-tag pushes, not on PRs.
-            MOVE_LATEST: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main'
-                || startsWith(github.ref, 'refs/tags/v')) }}
+            # Always move :latest so consumers using that tag get the current build.
+            MOVE_LATEST: "true"
         steps:
             - name: Install ORAS
               # Official action from the ORAS project — verifies the release via
