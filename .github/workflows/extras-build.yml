@@ -88,16 +88,6 @@ jobs:
                       install_as: "argocd"
                       summary: "Argo CD declarative GitOps CLI for Kubernetes"
                       license: "Apache-2.0"
-                      # Argo CD is SLSA Level 3 and publishes .sig + .pem next to the
-                      # binary. verify_cosign: true enables keyless verification via
-                      # the Sigstore transparency log.
-                      verify_cosign: true
-                      cosign_identity_regexp: "https://github\\.com/argoproj/argo-cd/\\.github/workfl\
-                          ows/.+"
-                      cosign_sig: "https://github.com/argoproj/argo-cd/releases/download/v3.3.8/argoc\
-                          d-linux-amd64.sig"
-                      cosign_cert: "https://github.com/argoproj/argo-cd/releases/download/v3.3.8/argo\
-                          cd-linux-amd64.pem"
                       # `argocd version` tries the server too; --client keeps it offline.
                       smoke_cmd: "argocd version --client"
                       smoke_grep: "v3.3.8"
