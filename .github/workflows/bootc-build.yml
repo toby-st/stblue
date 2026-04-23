@@ -67,6 +67,10 @@ jobs:
 
           echo "alias_tags=${alias_tags[*]}" >> $GITHUB_OUTPUT
 
+      - name: Log in to GHCR (for pulling private images)
+        run: |
+          echo "${{ github.token }}" | sudo podman login ghcr.io -u ${{ github.actor }} --password-stdin
+
       - name: Build Image
         id: build_image
         run: |
