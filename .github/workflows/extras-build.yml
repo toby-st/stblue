@@ -124,7 +124,7 @@ jobs:
                           kubeseal-0.36.6-linux-amd64.tar.gz"
                       # Aggregated sha file — script handles the grep.
                       sha: "https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.36.6/\
-                          sha256sum.txt"
+                          sealed-secrets_0.36.6_checksums.txt"
                       sha_grep: "kubeseal-0.36.6-linux-amd64.tar.gz"
                       kind: tar.gz
                       binary_in_archive: "./kubeseal"
