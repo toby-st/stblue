@@ -30,8 +30,9 @@ jobs:
                       # curl target → sha file layout → extraction → final binary name
                       url: "https://github.com/eza-community/eza/releases/download/v0.23.4/eza_x86_64\
                           -unknown-linux-gnu.tar.gz"
-                      sha: "https://github.com/eza-community/eza/releases/download/v0.23.4/eza_x86_64\
-                          -unknown-linux-gnu.sha256"
+                      # eza embeds the sha256 only in the release notes, not as a
+                      # downloadable file — use sha_inline instead of sha.
+                      sha_inline: "0c38665440226cd8bef5d1d4f3bc6ff77c927fb0d68b752739105db7ab5b358d"
                       kind: tar.gz
                       binary_in_archive: "./eza"
                       install_as: "eza"
@@ -59,11 +60,12 @@ jobs:
 
                     # renovate: datasource=github-releases depName=kubevirt/kubevirt versioning=semver extractVersion=^v(?<version>.+)$
                     - name: virtctl
-                      version: "1.8.0"
-                      url: "https://github.com/kubevirt/kubevirt/releases/download/v1.8.0/virtctl-v1.\
-                          8.0-linux-amd64"
-                      sha: "https://github.com/kubevirt/kubevirt/releases/download/v1.8.0/virtctl-v1.\
-                          8.0-linux-amd64.sha256"
+                      version: "1.8.2"
+                      url: "https://github.com/kubevirt/kubevirt/releases/download/v1.8.2/virtctl-v1.\
+                          8.2-linux-amd64"
+                      # virtctl embeds the sha256 only in the release notes, not as a
+                      # downloadable file — use sha_inline instead of sha.
+                      sha_inline: "745f3c58c6a77be65b828e67b6ad930e9039ab293ed5b2bef6d44c8681af5b75"
                       kind: raw
                       binary_in_archive: "./virtctl"
                       install_as: "virtctl"
@@ -71,15 +73,16 @@ jobs:
                       license: "Apache-2.0"
                       # `virtctl version` tries to contact a cluster; --client stays local.
                       smoke_cmd: "virtctl version --client"
-                      smoke_grep: "v1.8.0"
+                      smoke_grep: "v1.8.2"
 
                     # renovate: datasource=github-releases depName=argoproj/argo-cd versioning=semver extractVersion=^v(?<version>.+)$
                     - name: argocd
-                      version: "3.2.10"
-                      url: "https://github.com/argoproj/argo-cd/releases/download/v3.2.10/argocd-linu\
-                          x-amd64"
-                      sha: "https://github.com/argoproj/argo-cd/releases/download/v3.2.10/argocd-linu\
-                          x-amd64.sha256"
+                      version: "3.3.8"
+                      url: "https://github.com/argoproj/argo-cd/releases/download/v3.3.8/argocd-linux\
+                          -amd64"
+                      sha: "https://github.com/argoproj/argo-cd/releases/download/v3.3.8/cli_checksum\
+                          s.txt"
+                      sha_grep: "argocd-linux-amd64"
                       kind: raw
                       binary_in_archive: "./argocd"
                       install_as: "argocd"
@@ -91,13 +94,13 @@ jobs:
                       verify_cosign: true
                       cosign_identity_regexp: "https://github\\.com/argoproj/argo-cd/\\.github/workfl\
                           ows/.+"
-                      cosign_sig: "https://github.com/argoproj/argo-cd/releases/download/v3.2.10/argo\
-                          cd-linux-amd64.sig"
-                      cosign_cert: "https://github.com/argoproj/argo-cd/releases/download/v3.2.10/arg\
-                          ocd-linux-amd64.pem"
+                      cosign_sig: "https://github.com/argoproj/argo-cd/releases/download/v3.3.8/argoc\
+                          d-linux-amd64.sig"
+                      cosign_cert: "https://github.com/argoproj/argo-cd/releases/download/v3.3.8/argo\
+                          cd-linux-amd64.pem"
                       # `argocd version` tries the server too; --client keeps it offline.
                       smoke_cmd: "argocd version --client"
-                      smoke_grep: "v3.2.10"
+                      smoke_grep: "v3.3.8"
 
                     # renovate: datasource=github-releases depName=cilium/cilium-cli versioning=semver extractVersion=^v(?<version>.+)$
                     - name: cilium
@@ -128,6 +131,12 @@ jobs:
                       install_as: "kubeseal"
                       summary: "CLI for Sealed Secrets (one-way encrypted k8s secrets)"
                       license: "Apache-2.0"
+                      # kubeseal signs with a static key rather than keyless OIDC.
+                      verify_cosign: true
+                      cosign_pubkey: "https://github.com/bitnami-labs/sealed-secrets/releases/downloa\
+                          d/v0.36.6/cosign.pub"
+                      cosign_sig: "https://github.com/bitnami-labs/sealed-secrets/releases/download/v\
+                          0.36.6/kubeseal-0.36.6-linux-amd64.tar.gz.sig"
                       smoke_cmd: "kubeseal --version"
                       smoke_grep: "0.36.6"
 
@@ -201,33 +210,43 @@ jobs:
               env:
                   URL: ${{ matrix.tool.url }}
                   SHA: ${{ matrix.tool.sha }}
+                  SHA_INLINE: ${{ matrix.tool.sha_inline }}
               run: |
-                  curl -fsSL -o asset     "$URL"
-                  curl -fsSL -o asset.sha "$SHA"
+                  curl -fsSL -o asset "$URL"
+                  if [[ -n "${SHA_INLINE:-}" ]]; then
+                    echo "${SHA_INLINE}  asset" > asset.sha.local
+                  else
+                    curl -fsSL -o asset.sha "$SHA"
+                  fi
 
             - name: Verify SHA256
               working-directory: downloads
               env:
                   SHA_GREP: ${{ matrix.tool.sha_grep }}
+                  SHA_INLINE: ${{ matrix.tool.sha_inline }}
               run: |
                   set -euo pipefail
-                  # Three supported checksum-file layouts:
-                  #   a) per-asset file containing exactly "<hash>  <filename>"
-                  #   b) per-asset file containing just "<hash>"
-                  #   c) aggregated file ("sha256sum.txt"/"CHECKSUM"/"checksums.txt")
+                  # Four supported checksum-file layouts:
+                  #   a) inline hash provided directly via sha_inline (no file to parse)
+                  #   b) per-asset file containing exactly "<hash>  <filename>"
+                  #   c) per-asset file containing just "<hash>"
+                  #   d) aggregated file ("sha256sum.txt"/"CHECKSUM"/"checksums.txt")
                   #      — $SHA_GREP selects the right line. grep -F makes the match
                   #      literal so the matrix value can't be abused as a regex.
-                  if [[ -n "${SHA_GREP:-}" ]]; then
+                  if [[ -n "${SHA_INLINE:-}" ]]; then
+                    : # asset.sha.local already written by the download step
+                  elif [[ -n "${SHA_GREP:-}" ]]; then
                     line=$(grep -F -- "$SHA_GREP" asset.sha | head -n1)
                     hash=$(echo "$line" | awk '{print $1}')
+                    echo "${hash}  asset" > asset.sha.local
                   else
                     hash=$(awk '{print $1}' asset.sha | head -n1)
+                    echo "${hash}  asset" > asset.sha.local
                   fi
-                  if [[ -z "$hash" ]]; then
+                  if [[ ! -s asset.sha.local ]]; then
                     echo "::error::could not determine expected sha256" >&2
                     exit 1
                   fi
-                  echo "${hash}  asset" > asset.sha.local
                   sha256sum --check asset.sha.local
 
             - name: Verify cosign signature (if provided by upstream)
@@ -236,17 +255,28 @@ jobs:
               env:
                   COSIGN_SIG: ${{ matrix.tool.cosign_sig }}
                   COSIGN_CERT: ${{ matrix.tool.cosign_cert }}
+                  COSIGN_PUBKEY: ${{ matrix.tool.cosign_pubkey }}
                   COSIGN_ID_REGEX: ${{ matrix.tool.cosign_identity_regexp }}
               run: |
                   set -euo pipefail
-                  curl -fsSL -o asset.sig  "$COSIGN_SIG"
-                  curl -fsSL -o asset.cert "$COSIGN_CERT"
-                  COSIGN_EXPERIMENTAL=1 cosign verify-blob \
-                    --certificate-identity-regexp "$COSIGN_ID_REGEX" \
-                    --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-                    --signature  asset.sig \
-                    --certificate asset.cert \
-                    asset
+                  curl -fsSL -o asset.sig "$COSIGN_SIG"
+                  if [[ -n "${COSIGN_PUBKEY:-}" ]]; then
+                    # Key-based verification (e.g. kubeseal).
+                    curl -fsSL -o cosign.pub "$COSIGN_PUBKEY"
+                    cosign verify-blob \
+                      --key cosign.pub \
+                      --signature asset.sig \
+                      asset
+                  else
+                    # Keyless / OIDC verification (e.g. argocd).
+                    curl -fsSL -o asset.cert "$COSIGN_CERT"
+                    COSIGN_EXPERIMENTAL=1 cosign verify-blob \
+                      --certificate-identity-regexp "$COSIGN_ID_REGEX" \
+                      --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+                      --signature  asset.sig \
+                      --certificate asset.cert \
+                      asset
+                  fi
 
             - name: Stage binary from asset
               env:
