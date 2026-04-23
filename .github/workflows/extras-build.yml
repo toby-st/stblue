@@ -186,7 +186,10 @@ jobs:
               run: |
                   sudo apt-get update
                   sudo apt-get install -y --no-install-recommends \
-                    rpm tar curl ca-certificates cosign
+                    rpm tar curl ca-certificates
+
+            - name: Install cosign
+              uses: sigstore/cosign-installer@v3.9.1
 
             - name: Prepare workspace
               run: |
