@@ -2,13 +2,60 @@ set -ouex pipefail
 
 RELEASE="$(rpm -E %fedora)"
 
+MOK_DER="/usr/local/etc/mok.der"
+MOK_PRIV="/tmp/mok.priv"
+
+# Require real MOK signing material. Refuse to build an unsigned (or
+# throwaway-signed) evdi — such modules won't load under Secure Boot and
+# silently shipping them would be worse than failing the build.
+if [[ -z "${MOK_PRIV_B64:-}" ]]; then
+  echo "ERROR: MOK_PRIV_B64 secret not provided — cannot sign evdi." >&2
+  exit 1
+fi
+if [[ ! -f "$MOK_DER" ]]; then
+  echo "ERROR: $MOK_DER missing — cannot sign evdi." >&2
+  exit 1
+fi
+
+echo "$MOK_PRIV_B64" | base64 -d > "$MOK_PRIV"
+if ! openssl rsa -in "$MOK_PRIV" -check -noout >/dev/null 2>&1; then
+  echo "ERROR: MOK_PRIV_B64 did not decode to a valid RSA private key." >&2
+  exit 1
+fi
+
+dnf install -y dkms
+
+KERNEL_VER="$(ls /usr/src/kernels | sort -V | tail -1)"
+
+mkdir -p /etc/dkms/framework.conf.d
+cat > /etc/dkms/framework.conf.d/stblue-signing.conf <<EOF
+mok_signing_key="$MOK_PRIV"
+mok_certificate="$MOK_DER"
+EOF
+
 mkdir /usr/share/flatpak/remotes.d/ && \
     curl -L https://dl.flathub.org/repo/flathub.flatpakrepo -o /usr/share/flatpak/remotes.d/flathub.flatpakrepo
 rm /usr/lib/systemd/system/flatpak-add-fedora-repos.service
 
-# install displaylink userspace (evdi module is shipped via the kmod image)
+# Install displaylink (userspace + evdi dkms source). tsflags=noscripts skips
+# the %post systemctl invocations that fail in a container.
 RPM_URL=$(curl -s https://api.github.com/repos/displaylink-rpm/displaylink-rpm/releases/latest | grep -oP "https://github\.com/displaylink-rpm/displaylink-rpm/releases/download/[^/]+/fedora-${RELEASE}-[^\"]+\.x86_64\.rpm") \
-    && dnf install -y --setopt=tsflags=noscripts --exclude='kernel*' "$RPM_URL"
+    && dnf install -y --setopt=tsflags=noscripts "$RPM_URL"
+
+# Build and install evdi. dkms handles signing (per framework.conf above)
+# and xz-compressing the module into /lib/modules/$KERNEL_VER/extra/.
+EVDI_VER="$(ls /usr/src | grep -oP '(?<=evdi-).+')"
+dkms add -m evdi -v "$EVDI_VER"
+dkms build -m evdi -v "$EVDI_VER" -k "$KERNEL_VER"
+dkms autoinstall --verbose --kernelver "$KERNEL_VER"
+
+MODULE_PATH_XZ="/lib/modules/$KERNEL_VER/extra/evdi.ko.xz"
+if [[ ! -f "$MODULE_PATH_XZ" ]]; then
+    echo "evdi module not found at $MODULE_PATH_XZ"
+    exit 1
+fi
+
+shred -u "$MOK_PRIV"
 
 pipx install --system-site-packages --global solaar
 
