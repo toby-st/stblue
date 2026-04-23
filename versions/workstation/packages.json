@@ -36,6 +36,7 @@
         "gnome-tweaks",
         "gns3-gui",
         "gns3-server",
+        "golang-oras",
         "helm",
         "iwlwifi-mvm-firmware",
         "java",
