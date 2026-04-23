@@ -505,12 +505,13 @@ jobs:
     publish:
         name: Publish RPMs to GHCR (ORAS)
         needs: test
-        # Never publish from a pull_request trigger. Forks can open PRs that
-        # pass build + test but must not be able to push to our registry.
-        # Only pushes to the default branch or a v-tag are allowed to publish.
+        # Block fork PRs — they run with a read-only token and must not be
+        # able to push to the registry. Same-repo PRs have a write token and
+        # are safe to publish (useful for testing packaging changes before merge).
         if: >-
-            github.event_name == 'push' && (github.ref == 'refs/heads/main' ||
-            startsWith(github.ref, 'refs/tags/v'))
+            github.event_name == 'push' || (github.event_name == 'pull_request'
+            &&
+             github.event.pull_request.head.repo.full_name == github.repository)
         runs-on: ubuntu-24.04
         permissions:
             contents: read
@@ -521,11 +522,9 @@ jobs:
             # datasource can also manage this (datasource=github-releases
             # depName=oras-project/oras) if you add a hint comment.
             ORAS_VERSION: "1.2.2"
-            # Whether to move the :latest tag in addition to the version tag.
-            # True for main-branch pushes and v-tag pushes. False otherwise
-            # (should never happen given the if-gate above, but defense-in-depth).
-            MOVE_LATEST: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref,
-                'refs/tags/v') }}
+            # Move the :latest tag only on main-branch or v-tag pushes, not on PRs.
+            MOVE_LATEST: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main'
+                || startsWith(github.ref, 'refs/tags/v')) }}
         steps:
             - name: Install ORAS
               # Official action from the ORAS project — verifies the release via
