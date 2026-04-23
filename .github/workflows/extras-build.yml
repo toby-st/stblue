@@ -1,0 +1,612 @@
+name: Build k8s-tools RPMs
+
+on:
+    push:
+        branches: [ main ]
+        tags:
+            - "v*"
+    pull_request:
+        branches: [ main ]
+    workflow_dispatch: {}
+
+permissions:
+    contents: read
+
+env:
+    PKG_RELEASE: "1"
+    REGISTRY: ghcr.io
+
+jobs:
+    build:
+        name: Build ${{ matrix.tool.name }}
+        runs-on: ubuntu-24.04
+        strategy:
+            fail-fast: false
+            matrix:
+                tool:
+                    # renovate: datasource=github-releases depName=eza-community/eza versioning=semver extractVersion=^v(?<version>.+)$
+                    - name: eza
+                      version: "0.23.4"
+                      # curl target → sha file layout → extraction → final binary name
+                      url: "https://github.com/eza-community/eza/releases/download/v0.23.4/eza_x86_64\
+                          -unknown-linux-gnu.tar.gz"
+                      sha: "https://github.com/eza-community/eza/releases/download/v0.23.4/eza_x86_64\
+                          -unknown-linux-gnu.sha256"
+                      kind: tar.gz
+                      binary_in_archive: "./eza"
+                      install_as: "eza"
+                      summary: "A modern, maintained replacement for ls"
+                      license: "MIT"
+                      # Smoke test — must exit 0 and must contain the version (grep is
+                      # anchored to the matrix version so a wrong binary fails loudly).
+                      smoke_cmd: "eza --version"
+                      smoke_grep: "0.23.4"
+
+                    # renovate: datasource=github-releases depName=starship/starship versioning=semver extractVersion=^v(?<version>.+)$
+                    - name: starship
+                      version: "1.25.0"
+                      url: "https://github.com/starship/starship/releases/download/v1.25.0/starship-x\
+                          86_64-unknown-linux-gnu.tar.gz"
+                      sha: "https://github.com/starship/starship/releases/download/v1.25.0/starship-x\
+                          86_64-unknown-linux-gnu.tar.gz.sha256"
+                      kind: tar.gz
+                      binary_in_archive: "./starship"
+                      install_as: "starship"
+                      summary: "The minimal, blazing-fast, customizable prompt for any shell"
+                      license: "ISC"
+                      smoke_cmd: "starship --version"
+                      smoke_grep: "1.25.0"
+
+                    # renovate: datasource=github-releases depName=kubevirt/kubevirt versioning=semver extractVersion=^v(?<version>.+)$
+                    - name: virtctl
+                      version: "1.8.0"
+                      url: "https://github.com/kubevirt/kubevirt/releases/download/v1.8.0/virtctl-v1.\
+                          8.0-linux-amd64"
+                      sha: "https://github.com/kubevirt/kubevirt/releases/download/v1.8.0/virtctl-v1.\
+                          8.0-linux-amd64.sha256"
+                      kind: raw
+                      binary_in_archive: "./virtctl"
+                      install_as: "virtctl"
+                      summary: "KubeVirt command-line client"
+                      license: "Apache-2.0"
+                      # `virtctl version` tries to contact a cluster; --client stays local.
+                      smoke_cmd: "virtctl version --client"
+                      smoke_grep: "v1.8.0"
+
+                    # renovate: datasource=github-releases depName=argoproj/argo-cd versioning=semver extractVersion=^v(?<version>.+)$
+                    - name: argocd
+                      version: "3.2.10"
+                      url: "https://github.com/argoproj/argo-cd/releases/download/v3.2.10/argocd-linu\
+                          x-amd64"
+                      sha: "https://github.com/argoproj/argo-cd/releases/download/v3.2.10/argocd-linu\
+                          x-amd64.sha256"
+                      kind: raw
+                      binary_in_archive: "./argocd"
+                      install_as: "argocd"
+                      summary: "Argo CD declarative GitOps CLI for Kubernetes"
+                      license: "Apache-2.0"
+                      # Argo CD is SLSA Level 3 and publishes .sig + .pem next to the
+                      # binary. verify_cosign: true enables keyless verification via
+                      # the Sigstore transparency log.
+                      verify_cosign: true
+                      cosign_identity_regexp: "https://github\\.com/argoproj/argo-cd/\\.github/workfl\
+                          ows/.+"
+                      cosign_sig: "https://github.com/argoproj/argo-cd/releases/download/v3.2.10/argo\
+                          cd-linux-amd64.sig"
+                      cosign_cert: "https://github.com/argoproj/argo-cd/releases/download/v3.2.10/arg\
+                          ocd-linux-amd64.pem"
+                      # `argocd version` tries the server too; --client keeps it offline.
+                      smoke_cmd: "argocd version --client"
+                      smoke_grep: "v3.2.10"
+
+                    # renovate: datasource=github-releases depName=cilium/cilium-cli versioning=semver extractVersion=^v(?<version>.+)$
+                    - name: cilium
+                      version: "0.19.2"
+                      url: "https://github.com/cilium/cilium-cli/releases/download/v0.19.2/cilium-lin\
+                          ux-amd64.tar.gz"
+                      sha: "https://github.com/cilium/cilium-cli/releases/download/v0.19.2/cilium-lin\
+                          ux-amd64.tar.gz.sha256sum"
+                      kind: tar.gz
+                      binary_in_archive: "./cilium"
+                      install_as: "cilium"
+                      summary: "CLI to install, manage and troubleshoot Cilium"
+                      license: "Apache-2.0"
+                      smoke_cmd: "cilium version --client"
+                      smoke_grep: "v0.19.2"
+
+                    # renovate: datasource=github-releases depName=bitnami-labs/sealed-secrets versioning=semver extractVersion=^v(?<version>.+)$
+                    - name: kubeseal
+                      version: "0.36.6"
+                      url: "https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.36.6/\
+                          kubeseal-0.36.6-linux-amd64.tar.gz"
+                      # Aggregated sha file — script handles the grep.
+                      sha: "https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.36.6/\
+                          sha256sum.txt"
+                      sha_grep: "kubeseal-0.36.6-linux-amd64.tar.gz"
+                      kind: tar.gz
+                      binary_in_archive: "./kubeseal"
+                      install_as: "kubeseal"
+                      summary: "CLI for Sealed Secrets (one-way encrypted k8s secrets)"
+                      license: "Apache-2.0"
+                      smoke_cmd: "kubeseal --version"
+                      smoke_grep: "0.36.6"
+
+                    # renovate: datasource=github-releases depName=vmware-tanzu/velero versioning=semver extractVersion=^v(?<version>.+)$
+                    - name: velero
+                      version: "1.18.0"
+                      url: "https://github.com/vmware-tanzu/velero/releases/download/v1.18.0/velero-v\
+                          1.18.0-linux-amd64.tar.gz"
+                      sha: "https://github.com/vmware-tanzu/velero/releases/download/v1.18.0/CHECKSUM"
+                      sha_grep: "velero-v1.18.0-linux-amd64.tar.gz"
+                      kind: tar.gz
+                      binary_in_archive: "./velero-v1.18.0-linux-amd64/velero"
+                      install_as: "velero"
+                      summary: "Back up and migrate Kubernetes applications and volumes"
+                      license: "Apache-2.0"
+                      smoke_cmd: "velero version --client-only"
+                      smoke_grep: "v1.18.0"
+
+                    # renovate: datasource=github-releases depName=Adembc/lazyssh versioning=semver extractVersion=^v(?<version>.+)$
+                    - name: lazyssh
+                      version: "0.3.0"
+                      url: "https://github.com/Adembc/lazyssh/releases/download/v0.3.0/lazyssh_Linux_\
+                          x86_64.tar.gz"
+                      sha: "https://github.com/Adembc/lazyssh/releases/download/v0.3.0/checksums.txt"
+                      sha_grep: "lazyssh_Linux_x86_64.tar.gz"
+                      kind: tar.gz
+                      binary_in_archive: "./lazyssh"
+                      install_as: "lazyssh"
+                      summary: "Terminal-based SSH manager (lazydocker/k9s inspired)"
+                      license: "MIT"
+                      # lazyssh has no version subcommand; --help exits 0 and is enough
+                      # to prove the binary is executable and not truncated.
+                      smoke_cmd: "lazyssh --help"
+                      smoke_grep: "lazyssh"
+
+                    # renovate: datasource=github-releases depName=kubernetes-sigs/krew versioning=semver extractVersion=^v(?<version>.+)$
+                    - name: krew
+                      version: "0.5.0"
+                      url: "https://github.com/kubernetes-sigs/krew/releases/download/v0.5.0/krew-lin\
+                          ux_amd64.tar.gz"
+                      sha: "https://github.com/kubernetes-sigs/krew/releases/download/v0.5.0/krew-lin\
+                          ux_amd64.tar.gz.sha256"
+                      kind: tar.gz
+                      binary_in_archive: "./krew-linux_amd64"
+                      # Installed as a kubectl plugin — `kubectl krew` finds /usr/bin/kubectl-krew.
+                      install_as: "kubectl-krew"
+                      summary: "Package manager for kubectl plugins"
+                      license: "Apache-2.0"
+                      # Krew is invoked as a kubectl plugin in normal use, but the
+                      # binary responds to `version` directly too.
+                      smoke_cmd: "kubectl-krew version"
+                      smoke_grep: "v0.5.0"
+
+        steps:
+            - name: Install build dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y --no-install-recommends \
+                    rpm tar curl ca-certificates cosign
+
+            - name: Prepare workspace
+              run: |
+                  mkdir -p downloads payload/usr/bin
+                  mkdir -p "$HOME/rpmbuild"/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
+
+            - name: Download binary
+              working-directory: downloads
+              env:
+                  URL: ${{ matrix.tool.url }}
+                  SHA: ${{ matrix.tool.sha }}
+              run: |
+                  curl -fsSL -o asset     "$URL"
+                  curl -fsSL -o asset.sha "$SHA"
+
+            - name: Verify SHA256
+              working-directory: downloads
+              env:
+                  SHA_GREP: ${{ matrix.tool.sha_grep }}
+              run: |
+                  set -euo pipefail
+                  # Three supported checksum-file layouts:
+                  #   a) per-asset file containing exactly "<hash>  <filename>"
+                  #   b) per-asset file containing just "<hash>"
+                  #   c) aggregated file ("sha256sum.txt"/"CHECKSUM"/"checksums.txt")
+                  #      — $SHA_GREP selects the right line. grep -F makes the match
+                  #      literal so the matrix value can't be abused as a regex.
+                  if [[ -n "${SHA_GREP:-}" ]]; then
+                    line=$(grep -F -- "$SHA_GREP" asset.sha | head -n1)
+                    hash=$(echo "$line" | awk '{print $1}')
+                  else
+                    hash=$(awk '{print $1}' asset.sha | head -n1)
+                  fi
+                  if [[ -z "$hash" ]]; then
+                    echo "::error::could not determine expected sha256" >&2
+                    exit 1
+                  fi
+                  echo "${hash}  asset" > asset.sha.local
+                  sha256sum --check asset.sha.local
+
+            - name: Verify cosign signature (if provided by upstream)
+              if: ${{ matrix.tool.verify_cosign == true }}
+              working-directory: downloads
+              env:
+                  COSIGN_SIG: ${{ matrix.tool.cosign_sig }}
+                  COSIGN_CERT: ${{ matrix.tool.cosign_cert }}
+                  COSIGN_ID_REGEX: ${{ matrix.tool.cosign_identity_regexp }}
+              run: |
+                  set -euo pipefail
+                  curl -fsSL -o asset.sig  "$COSIGN_SIG"
+                  curl -fsSL -o asset.cert "$COSIGN_CERT"
+                  COSIGN_EXPERIMENTAL=1 cosign verify-blob \
+                    --certificate-identity-regexp "$COSIGN_ID_REGEX" \
+                    --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+                    --signature  asset.sig \
+                    --certificate asset.cert \
+                    asset
+
+            - name: Stage binary from asset
+              env:
+                  KIND: ${{ matrix.tool.kind }}
+                  BIN_IN_ARCHIVE: ${{ matrix.tool.binary_in_archive }}
+                  INSTALL_AS: ${{ matrix.tool.install_as }}
+                  WORKSPACE: ${{ github.workspace }}
+              run: |
+                  set -euo pipefail
+                  cd downloads
+                  case "$KIND" in
+                    tar.gz) tar -xzf asset ;;
+                    zip)    unzip -o asset ;;
+                    raw)    cp asset "$BIN_IN_ARCHIVE" ;;
+                    *)      echo "::error::unknown kind: $KIND" >&2; exit 1 ;;
+                  esac
+                  install -m 0755 "$BIN_IN_ARCHIVE" \
+                    "$WORKSPACE/payload/usr/bin/$INSTALL_AS"
+
+            - name: Write RPM spec
+              env:
+                  TOOL_NAME: ${{ matrix.tool.name }}
+                  TOOL_VERSION: ${{ matrix.tool.version }}
+                  TOOL_SUMMARY: ${{ matrix.tool.summary }}
+                  TOOL_LICENSE: ${{ matrix.tool.license }}
+                  TOOL_URL: ${{ matrix.tool.url }}
+                  INSTALL_AS: ${{ matrix.tool.install_as }}
+                  WORKSPACE: ${{ github.workspace }}
+              run: |
+                  set -euo pipefail
+                  # Validate inputs before splicing them into the spec. These fields
+                  # come from the workflow matrix which is repo-trusted on main but
+                  # fork-controlled on PRs — tight input checks prevent a malicious
+                  # PR from producing a surprising spec.
+                  [[ "$TOOL_NAME"    =~ ^[a-z0-9][a-z0-9_-]*$ ]] || { echo "::error::bad name";    exit 1; }
+                  [[ "$TOOL_VERSION" =~ ^[0-9][A-Za-z0-9._+~-]*$ ]] || { echo "::error::bad version"; exit 1; }
+                  [[ "$INSTALL_AS"   =~ ^[a-z0-9][a-z0-9_-]*$ ]] || { echo "::error::bad install_as"; exit 1; }
+
+                  cat > "$HOME/rpmbuild/SPECS/${TOOL_NAME}.spec" <<EOF
+                  Name:           ${TOOL_NAME}
+                  Version:        ${TOOL_VERSION}
+                  Release:        ${PKG_RELEASE}%{?dist}
+                  Summary:        ${TOOL_SUMMARY}
+
+                  License:        ${TOOL_LICENSE}
+                  URL:            ${TOOL_URL}
+                  BuildArch:      x86_64
+
+                  # Upstream binaries are statically-linked enough that auto-requires
+                  # generate noise; turn it off and trust the binary as shipped.
+                  AutoReqProv:    no
+
+                  %description
+                  ${TOOL_SUMMARY}.
+                  This RPM repackages the upstream Linux/amd64 binary without modification.
+
+                  %install
+                  mkdir -p %{buildroot}/usr/bin
+                  install -m 0755 ${WORKSPACE}/payload/usr/bin/${INSTALL_AS} \\
+                                  %{buildroot}/usr/bin/${INSTALL_AS}
+
+                  %files
+                  /usr/bin/${INSTALL_AS}
+
+                  %changelog
+                  * $(date '+%a %b %d %Y') GitHub Actions <actions@github.com> - ${TOOL_VERSION}-${PKG_RELEASE}
+                  - Repackaged from upstream release ${TOOL_VERSION}.
+                  EOF
+
+            - name: Build RPM
+              env:
+                  TOOL_NAME: ${{ matrix.tool.name }}
+              run: |
+                  rpmbuild -bb "$HOME/rpmbuild/SPECS/${TOOL_NAME}.spec"
+                  mkdir -p out
+                  cp "$HOME/rpmbuild/RPMS/x86_64/"*.rpm out/
+                  ls -la out/
+
+            - name: Inspect RPM
+              run: |
+                  rpm -qip out/*.rpm
+                  rpm -qlp out/*.rpm
+
+            - name: Write smoke-test plan
+              # A tiny TSV one-liner per RPM that the test job aggregates. Format:
+              #   <rpm_filename>\t<command to run>\t<substring to grep for>
+              env:
+                  TOOL_NAME: ${{ matrix.tool.name }}
+                  SMOKE_CMD: ${{ matrix.tool.smoke_cmd }}
+                  SMOKE_GREP: ${{ matrix.tool.smoke_grep }}
+              run: |
+                  set -euo pipefail
+                  rpm_file=$(basename out/*.rpm)
+                  # Write with printf's own format string (no eval) and don't allow
+                  # tab/newline in the fields — keeps the TSV one-line-per-entry.
+                  for v in "$SMOKE_CMD" "$SMOKE_GREP"; do
+                    case "$v" in *$'\t'*|*$'\n'*) echo "::error::forbidden char in smoke field"; exit 1;; esac
+                  done
+                  printf '%s\t%s\t%s\n' "$rpm_file" "$SMOKE_CMD" "$SMOKE_GREP" \
+                    > "out/${TOOL_NAME}.smoke"
+
+            - name: Upload RPM as workflow artifact
+              # Renovate's `helpers:pinGitHubActionDigestsToSemver` (enabled in
+              # renovate.json) will convert these tags to SHA pins on its first
+              # run. Until then, tags are vulnerable to retagging attacks — see
+              # the tj-actions/changed-files compromise from March 2025.
+              uses: actions/upload-artifact@v4.4.3
+              with:
+                  name: rpm-${{ matrix.tool.name }}
+                  path: |
+                      out/*.rpm
+                      out/*.smoke
+                  retention-days: 30
+
+    # ---------------------------------------------------------------------
+    # Install every RPM into a clean Fedora container and smoke-test each
+    # binary. This gates the carrier-image publish below.
+    # ---------------------------------------------------------------------
+    test:
+        name: Smoke-test RPMs
+        needs: build
+        runs-on: ubuntu-24.04
+        container:
+            # Same family as the likely consumer base (Fedora/RHEL/UBI). Pinned
+            # by major version — bump deliberately.
+            image: fedora:43
+        steps:
+            - name: Install test prerequisites
+              # `which` + `file` aren't strictly required for smoke tests, but they
+              # make the log useful when a test fails.
+              run: dnf install -y --setopt=install_weak_deps=False which file
+
+            - name: Download all RPM artifacts
+              uses: actions/download-artifact@v4.1.8
+              with:
+                  pattern: rpm-*
+                  merge-multiple: true
+                  path: rpms
+
+            - name: List downloaded artifacts
+              run: ls -la rpms/
+
+            - name: Install all RPMs
+              # Use dnf (not rpm -i) so any transitive requirements resolve. Our
+              # specs set AutoReqProv: no so there shouldn't be any, but dnf also
+              # gives us clearer errors if something's genuinely wrong.
+              run: |
+                  dnf install -y rpms/*.rpm
+                  echo "--- installed packages ---"
+                  rpm -qa | grep -E '^(eza|starship|virtctl|argocd|cilium|kubeseal|velero|lazyssh|kubectl-krew)-' | sort
+
+            - name: Run smoke tests
+              shell: bash
+              # Public-repo note: smoke commands come from the matrix, which a
+              # fork PR can edit. This runner runs inside `fedora:40` with a
+              # read-only GITHUB_TOKEN and no secrets, so the blast radius of
+              # arbitrary command execution is already small. As defense in depth
+              # we also:
+              #   1) refuse to run if the first token isn't one of our known
+              #      binaries, and
+              #   2) exec the command via argv rather than `eval`, so shell
+              #      metacharacters in the command field can't chain extra
+              #      commands.
+              run: |
+                  set -uo pipefail
+                  fail=0; pass=0
+
+                  # Allowlist of permitted first tokens. Keep this in sync with the
+                  # `install_as` field of each matrix entry.
+                  allowed_bins=(eza starship virtctl argocd cilium kubeseal velero lazyssh kubectl-krew)
+
+                  is_allowed() {
+                    local b=$1
+                    for a in "${allowed_bins[@]}"; do [[ "$a" == "$b" ]] && return 0; done
+                    return 1
+                  }
+
+                  echo "::group::Smoke-test results"
+                  printf '%-14s %-40s %s\n' "TOOL" "COMMAND" "RESULT"
+                  printf '%-14s %-40s %s\n' "----" "-------" "------"
+
+                  for plan in rpms/*.smoke; do
+                    tool=$(basename "$plan" .smoke)
+                    IFS=$'\t' read -r rpm cmd needle < "$plan"
+
+                    # Tokenize on whitespace only — no shell expansion, no quoting
+                    # games, no substitution. `read -ra` splits $cmd into argv[].
+                    read -ra argv <<< "$cmd"
+                    bin=${argv[0]:-}
+
+                    if ! is_allowed "$bin"; then
+                      printf '%-14s %-40s %s\n' "$tool" "$cmd" "BLOCKED (not in allowlist)"
+                      echo "::error title=$tool smoke test blocked::first token '$bin' is not in the allowlist"
+                      fail=$((fail+1)); continue
+                    fi
+
+                    # Run via argv — no eval, no shell interpretation of argv content.
+                    if output=$( "${argv[@]}" 2>&1 ); then rc=0; else rc=$?; fi
+
+                    if [[ $rc -ne 0 ]]; then
+                      printf '%-14s %-40s %s\n' "$tool" "$cmd" "FAIL (exit $rc)"
+                      echo "::error title=$tool smoke test failed::$cmd exited with $rc"
+                      echo "--- output ---"; echo "$output"; echo "--------------"
+                      fail=$((fail+1)); continue
+                    fi
+
+                    if ! grep -qF -- "$needle" <<< "$output"; then
+                      printf '%-14s %-40s %s\n' "$tool" "$cmd" "FAIL (missing '$needle')"
+                      echo "::error title=$tool smoke test failed::output did not contain '$needle'"
+                      echo "--- output ---"; echo "$output"; echo "--------------"
+                      fail=$((fail+1)); continue
+                    fi
+
+                    printf '%-14s %-40s %s\n' "$tool" "$cmd" "PASS"
+                    pass=$((pass+1))
+                  done
+
+                  echo "::endgroup::"
+                  echo
+                  echo "Summary: $pass passed, $fail failed."
+                  [[ $fail -eq 0 ]]
+
+    # ---------------------------------------------------------------------
+    # Publish each RPM as its own OCI artifact via ORAS. One OCI repo per
+    # tool, tagged with its upstream version (e.g. `eza:0.23.4`). On main /
+    # v-tag pushes we also move the `:latest` tag.
+    #
+    # Consumers pull a single RPM:
+    #   oras pull ghcr.io/<org>/<repo>/rpm/eza:0.23.4
+    # Or in a Containerfile:
+    #   FROM ghcr.io/<org>/<repo>/rpm/eza:0.23.4 AS rpm_eza
+    #   FROM registry.fedoraproject.org/fedora:40
+    #   COPY --from=rpm_eza /*.rpm /tmp/
+    #   RUN dnf install -y /tmp/*.rpm && rm /tmp/*.rpm
+    # ---------------------------------------------------------------------
+    publish:
+        name: Publish RPMs to GHCR (ORAS)
+        needs: test
+        # Never publish from a pull_request trigger. Forks can open PRs that
+        # pass build + test but must not be able to push to our registry.
+        # Only pushes to the default branch or a v-tag are allowed to publish.
+        if: >-
+            github.event_name == 'push' && (github.ref == 'refs/heads/main' ||
+            startsWith(github.ref, 'refs/tags/v'))
+        runs-on: ubuntu-24.04
+        permissions:
+            contents: read
+            packages: write
+        env:
+            # Bumping: visit https://github.com/oras-project/oras/releases and
+            # update both the version and the SHA256. Renovate's github-releases
+            # datasource can also manage this (datasource=github-releases
+            # depName=oras-project/oras) if you add a hint comment.
+            ORAS_VERSION: "1.2.2"
+            # Whether to move the :latest tag in addition to the version tag.
+            # True for main-branch pushes and v-tag pushes. False otherwise
+            # (should never happen given the if-gate above, but defense-in-depth).
+            MOVE_LATEST: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref,
+                'refs/tags/v') }}
+        steps:
+            - name: Install ORAS
+              # Official action from the ORAS project — verifies the release via
+              # SHA256 from the published checksums file automatically.
+              # Pin the action with Renovate's helpers:pinGitHubActionDigestsToSemver.
+              uses: oras-project/setup-oras@v1.2.3
+              with:
+                  version: ${{ env.ORAS_VERSION }}
+
+            - name: Install rpm
+              # `rpm` isn't on the default ubuntu-24.04 runner; we need it to
+              # query NAME/VERSION from each built package.
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y --no-install-recommends rpm
+
+            - name: Download all RPM artifacts
+              uses: actions/download-artifact@v4.1.8
+              with:
+                  pattern: rpm-*
+                  merge-multiple: true
+                  path: rpms
+
+            - name: Drop smoke-test plan files (artifact metadata, not for publishing)
+              run: rm -f rpms/*.smoke && ls -la rpms/
+
+            - name: Log in to GHCR
+              env:
+                  GHCR_USER: ${{ github.actor }}
+                  GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  set -euo pipefail
+                  echo "$GHCR_TOKEN" | oras login "${REGISTRY}" \
+                    --username "$GHCR_USER" --password-stdin
+
+            - name: Push each RPM as its own OCI artifact
+              env:
+                  REPO: ${{ github.repository }}
+              run: |
+                  set -euo pipefail
+
+                  # Lowercase the repo path — GHCR rejects uppercase in repo names,
+                  # and `github.repository` can contain mixed case for org repos.
+                  repo_lc=$(echo "$REPO" | tr '[:upper:]' '[:lower:]')
+
+                  pushed=0
+                  for rpm in rpms/*.rpm; do
+                    # Derive the tool name and version from the RPM filename.
+                    # rpm --queryformat avoids parsing the filename ourselves; it's
+                    # sourced from the RPM header, which rpmbuild wrote from values
+                    # we validated earlier in the build job.
+                    name=$(rpm -qp --queryformat '%{NAME}'    "$rpm")
+                    ver=$(rpm  -qp --queryformat '%{VERSION}' "$rpm")
+
+                    # Sanity-check the derived strings before splicing into a URL.
+                    [[ "$name" =~ ^[a-z0-9][a-z0-9_-]*$ ]] || { echo "::error::bad name from RPM: $name"; exit 1; }
+                    [[ "$ver"  =~ ^[0-9][A-Za-z0-9._+~-]*$ ]] || { echo "::error::bad version from RPM: $ver"; exit 1; }
+
+                    base="${REGISTRY}/${repo_lc}/rpm/${name}"
+                    rpm_filename=$(basename "$rpm")
+
+                    echo "::group::Push $name:$ver"
+
+                    # Push the versioned tag. --artifact-type is the top-level OCI
+                    # artifactType; the `:application/x-rpm` suffix on the file
+                    # argument is the layer media type, which is what ORAS uses to
+                    # describe each layer blob.
+                    oras push \
+                      --artifact-type "application/vnd.redhat.rpm.v1" \
+                      --annotation "org.opencontainers.image.source=https://github.com/${REPO}" \
+                      --annotation "org.opencontainers.image.description=${name} ${ver} RPM, repackaged from upstream binary" \
+                      --annotation "org.opencontainers.image.version=${ver}" \
+                      --annotation "org.opencontainers.image.licenses=various" \
+                      "${base}:${ver}" \
+                      "${rpm}:application/x-rpm"
+
+                    # Move :latest to the same digest. oras tag is a cheap manifest
+                    # retag — no data transfer, just a registry pointer update.
+                    if [[ "${MOVE_LATEST}" == "true" ]]; then
+                      oras tag "${base}:${ver}" latest
+                      echo "Tagged ${base}:latest -> ${ver}"
+                    fi
+
+                    echo "Published: ${base}:${ver} (${rpm_filename})"
+                    echo "::endgroup::"
+                    pushed=$((pushed+1))
+                  done
+
+                  echo "Pushed ${pushed} artifact(s)."
+                  [[ $pushed -gt 0 ]]
+
+            - name: Summary
+              env:
+                  REPO: ${{ github.repository }}
+              run: |
+                  repo_lc=$(echo "$REPO" | tr '[:upper:]' '[:lower:]')
+                  {
+                    echo "## Published RPM artifacts"
+                    echo
+                    echo "| Tool | Version tag | \`:latest\` moved |"
+                    echo "|------|-------------|------------------|"
+                    for rpm in rpms/*.rpm; do
+                      name=$(rpm -qp --queryformat '%{NAME}'    "$rpm")
+                      ver=$(rpm  -qp --queryformat '%{VERSION}' "$rpm")
+                      echo "| \`${name}\` | \`${REGISTRY}/${repo_lc}/rpm/${name}:${ver}\` | ${MOVE_LATEST} |"
+                    done
+                  } >> "$GITHUB_STEP_SUMMARY"
