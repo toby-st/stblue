@@ -67,9 +67,10 @@ GHCR="ghcr.io/toby-st/stblue/rpm"
 TOOLS=(eza starship virtctl argocd cilium kubeseal velero lazyssh krew)
 mkdir -p /tmp/extra-rpms
 for tool in "${TOOLS[@]}"; do
-    oras pull --output /tmp/extra-rpms "${GHCR}/${tool}:latest"
+    (cd /tmp/extra-rpms && oras pull "ghcr.io/toby-st/stblue/rpm/${tool}:latest")
 done
-dnf install -y /tmp/extra-rpms/*.rpm
+mapfile -t rpms < <(find /tmp/extra-rpms -name '*.rpm')
+dnf install -y "${rpms[@]}"
 rm -rf /tmp/extra-rpms
 #install eval
 VERSION=$(curl -s https://api.github.com/repos/opendidac/opendidac_desktop_release/releases/latest | grep -oP '"tag_name": "\K[^"]+') \
