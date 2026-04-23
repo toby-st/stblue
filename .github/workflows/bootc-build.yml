@@ -67,27 +67,9 @@ jobs:
 
           echo "alias_tags=${alias_tags[*]}" >> $GITHUB_OUTPUT
 
-      - name: Log in to GHCR (for pulling kmod image)
+      - name: Log in to GHCR (for pulling private images)
         run: |
           echo "${{ github.token }}" | sudo podman login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Resolve kmod image tag
-        run: |
-          set -ouex pipefail
-
-          # Kernel version comes from the base image this build will actually
-          # use — not from kmod:latest, which races with the nightly rebuild.
-          sudo podman pull "${BASE_IMAGE}:${MAJOR_VERSION}"
-          KVER=$(sudo podman run --rm --entrypoint=/usr/bin/rpm \
-            "${BASE_IMAGE}:${MAJOR_VERSION}" \
-            -q --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}' kernel-core)
-
-          KMOD_IMAGE="ghcr.io/${{ github.repository_owner }}/stblue/kmod:${KVER}"
-          if ! sudo podman pull "$KMOD_IMAGE"; then
-            echo "::error::kmod image $KMOD_IMAGE not found — run the build-kmod workflow for kernel ${KVER}"
-            exit 1
-          fi
-          echo "KMOD_IMAGE=${KMOD_IMAGE}" >> $GITHUB_ENV
 
       - name: Build Image
         id: build_image
@@ -100,7 +82,7 @@ jobs:
             --build-arg IMAGE_NAME=${{ matrix.image_name }} \
             --build-arg MAJOR_VERSION=${{ env.MAJOR_VERSION }} \
             --build-arg BASE_IMAGE=${{ env.BASE_IMAGE }} \
-            --build-arg KMOD_IMAGE=${{ env.KMOD_IMAGE }} \
+            --secret id=mok_priv_b64,env=MOK_PRIV_B64 \
             -t ${{ env.IMAGE_NAME }} \
             -f ./Containerfile.bootc \
             .
@@ -122,6 +104,8 @@ jobs:
 
           echo "image=${{ env.IMAGE_NAME }}" >> $GITHUB_OUTPUT
           echo "tags=${TAGS[*]}" >> $GITHUB_OUTPUT
+        env:
+          MOK_PRIV_B64: ${{ secrets.MOK_PRIV_B64 }}
 
       - name: Configure sigstore attachments
         run: |
