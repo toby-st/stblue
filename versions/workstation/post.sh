@@ -33,9 +33,9 @@ mok_signing_key="$MOK_PRIV"
 mok_certificate="$MOK_DER"
 EOF
 
-mkdir /usr/share/flatpak/remotes.d/ && \
+mkdir -p /usr/share/flatpak/remotes.d/ && \
     curl -L https://dl.flathub.org/repo/flathub.flatpakrepo -o /usr/share/flatpak/remotes.d/flathub.flatpakrepo
-rm /usr/lib/systemd/system/flatpak-add-fedora-repos.service
+rm /usr/lib/systemd/system/flatpak-add-fedora-repos.service || true
 
 # Install displaylink (userspace + evdi dkms source). tsflags=noscripts skips
 # the %post systemctl invocations that fail in a container.
