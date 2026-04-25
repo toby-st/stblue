@@ -6,7 +6,7 @@ REMOVE_PACKAGES=($(jq -r "(.remove) | sort | unique[]" /tmp/packages.json))
 mkdir /var/roothome || echo "directory already exists"
 
 dnf install -y ${INSTALL_PACKAGES[@]}
-dnf remove -y ${REMOVE_PACKAGES[@]}
+dnf remove -y --exclude=flatpak,flatpak-selinux ${REMOVE_PACKAGES[@]}
 
 dnf -y autoremove
 dnf clean all
