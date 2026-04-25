@@ -40,9 +40,9 @@ rm /usr/lib/systemd/system/flatpak-add-fedora-repos.service
 # Install displaylink (userspace + evdi dkms source). tsflags=noscripts skips
 # the %post systemctl invocations that fail in a container.
 LATEST_RELEASE=$(curl -s https://api.github.com/repos/displaylink-rpm/displaylink-rpm/releases/latest)
-RPM_URL=$(echo "$LATEST_RELEASE" | grep -oP "https://github\.com/displaylink-rpm/displaylink-rpm/releases/download/[^/]+/fedora-${RELEASE}-[^\"]+\.x86_64\.rpm")
+RPM_URL=$(echo "$LATEST_RELEASE" | grep -oP "https://github\.com/displaylink-rpm/displaylink-rpm/releases/download/[^/]+/fedora-${RELEASE}-[^\"]+\.x86_64\.rpm" || true)
 if [[ -z "$RPM_URL" ]]; then
-    RPM_URL=$(echo "$LATEST_RELEASE" | grep -oP "https://github\.com/displaylink-rpm/displaylink-rpm/releases/download/[^/]+/fedora-43-[^\"]+\.x86_64\.rpm")
+    RPM_URL=$(echo "$LATEST_RELEASE" | grep -oP "https://github\.com/displaylink-rpm/displaylink-rpm/releases/download/[^/]+/fedora-43-[^\"]+\.x86_64\.rpm" || true)
 fi
 dnf install -y --setopt=tsflags=noscripts "$RPM_URL"
 
