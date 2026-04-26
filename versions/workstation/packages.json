@@ -19,6 +19,7 @@
         "cups",
         "ddrescue",
         "distrobox",
+        "etcd",
         "ffmpegthumbnailer",
         "fido2-tools",
         "firewalld",
