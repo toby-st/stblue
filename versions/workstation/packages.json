@@ -13,6 +13,7 @@
         "atuin",
         "bootc",
         "clang",
+        "clang-tools-extra",
         "cmake",
         "code",
         "code-insiders",
