@@ -162,6 +162,28 @@ jobs:
                       smoke_cmd: "lazyssh --help"
                       smoke_grep: "lazyssh"
 
+                    # renovate: datasource=github-releases depName=zed-industries/zed versioning=semver extractVersion=^v(?<version>.+)$
+                    - name: zed
+                      version: "1.0.0"
+                      url: "https://github.com/zed-industries/zed/releases/download/v1.0.0/zed-linux-\
+                          x86_64.tar.gz"
+                      # Zed's GitHub release does not publish a separate .sha256 file —
+                      # the digest is only embedded in the release page. Use sha_inline.
+                      sha_inline: "2aad4b35481bdb0ed055fd6b402edbf216ffcb8af6b244069eec4b06a311d72f"
+                      # App-bundle install (multi-file). Adapted from the upstream
+                      # install.sh shipped at .github/workflows/install.sh.
+                      kind: app
+                      # Top-level directory inside the tarball.
+                      app_dir_in_archive: "zed.app"
+                      # Reverse-DNS app id; matches the .desktop file basename in
+                      # zed.app/share/applications/.
+                      app_id: "dev.zed.Zed"
+                      install_as: "zed"
+                      summary: "A high-performance, multiplayer code editor"
+                      license: "AGPL-3.0-or-later"
+                      smoke_cmd: "zed --version"
+                      smoke_grep: "1.0.0"
+
                     # renovate: datasource=github-releases depName=kubernetes-sigs/krew versioning=semver extractVersion=^v(?<version>.+)$
                     - name: krew
                       version: "0.5.0"
@@ -273,6 +295,8 @@ jobs:
                   KIND: ${{ matrix.tool.kind }}
                   BIN_IN_ARCHIVE: ${{ matrix.tool.binary_in_archive }}
                   INSTALL_AS: ${{ matrix.tool.install_as }}
+                  APP_DIR_IN_ARCHIVE: ${{ matrix.tool.app_dir_in_archive }}
+                  APP_ID: ${{ matrix.tool.app_id }}
                   WORKSPACE: ${{ github.workspace }}
               run: |
                   set -euo pipefail
@@ -281,10 +305,47 @@ jobs:
                     tar.gz) tar -xzf asset ;;
                     zip)    unzip -o asset ;;
                     raw)    cp asset "$BIN_IN_ARCHIVE" ;;
+                    app)    tar -xzf asset ;;
                     *)      echo "::error::unknown kind: $KIND" >&2; exit 1 ;;
                   esac
-                  install -m 0755 "$BIN_IN_ARCHIVE" \
-                    "$WORKSPACE/payload/usr/bin/$INSTALL_AS"
+
+                  if [[ "$KIND" == "app" ]]; then
+                    # App-bundle install: place the whole bundle under /usr/lib/<install_as>/,
+                    # then surface the upstream .desktop + icon files at standard system
+                    # paths so menus and icon themes find them. The /usr/bin symlink is
+                    # created in the RPM spec's %install (so it's owned by the package).
+                    [[ "$APP_DIR_IN_ARCHIVE" =~ ^[A-Za-z0-9._-]+$ ]] \
+                      || { echo "::error::bad app_dir_in_archive"; exit 1; }
+                    [[ "$APP_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] \
+                      || { echo "::error::bad app_id"; exit 1; }
+
+                    bundle_dst="$WORKSPACE/payload/usr/lib/$INSTALL_AS"
+                    mkdir -p "$(dirname "$bundle_dst")"
+                    cp -a "$APP_DIR_IN_ARCHIVE" "$bundle_dst"
+
+                    bin_path="$bundle_dst/bin/$INSTALL_AS"
+                    if [[ ! -x "$bin_path" ]]; then
+                      echo "::error::expected binary at $bin_path" >&2
+                      exit 1
+                    fi
+
+                    desktop_src="$bundle_dst/share/applications/${APP_ID}.desktop"
+                    if [[ ! -f "$desktop_src" ]]; then
+                      echo "::error::desktop file not found at $desktop_src" >&2
+                      exit 1
+                    fi
+                    mkdir -p "$WORKSPACE/payload/usr/share/applications"
+                    cp "$desktop_src" "$WORKSPACE/payload/usr/share/applications/"
+
+                    if [[ -d "$bundle_dst/share/icons" ]]; then
+                      mkdir -p "$WORKSPACE/payload/usr/share/icons"
+                      cp -a "$bundle_dst/share/icons/." \
+                            "$WORKSPACE/payload/usr/share/icons/"
+                    fi
+                  else
+                    install -m 0755 "$BIN_IN_ARCHIVE" \
+                      "$WORKSPACE/payload/usr/bin/$INSTALL_AS"
+                  fi
 
             - name: Write RPM spec
               env:
@@ -294,6 +355,8 @@ jobs:
                   TOOL_LICENSE: ${{ matrix.tool.license }}
                   TOOL_URL: ${{ matrix.tool.url }}
                   INSTALL_AS: ${{ matrix.tool.install_as }}
+                  KIND: ${{ matrix.tool.kind }}
+                  APP_ID: ${{ matrix.tool.app_id }}
                   WORKSPACE: ${{ github.workspace }}
               run: |
                   set -euo pipefail
@@ -305,7 +368,65 @@ jobs:
                   [[ "$TOOL_VERSION" =~ ^[0-9][A-Za-z0-9._+~-]*$ ]] || { echo "::error::bad version"; exit 1; }
                   [[ "$INSTALL_AS"   =~ ^[a-z0-9][a-z0-9_-]*$ ]] || { echo "::error::bad install_as"; exit 1; }
 
-                  cat > "$HOME/rpmbuild/SPECS/${TOOL_NAME}.spec" <<EOF
+                  if [[ "${KIND:-}" == "app" ]]; then
+                    [[ "$APP_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] \
+                      || { echo "::error::bad app_id"; exit 1; }
+
+                    cat > "$HOME/rpmbuild/SPECS/${TOOL_NAME}.spec" <<EOF
+                  Name:           ${TOOL_NAME}
+                  Version:        ${TOOL_VERSION}
+                  Release:        ${PKG_RELEASE}%{?dist}
+                  Summary:        ${TOOL_SUMMARY}
+
+                  License:        ${TOOL_LICENSE}
+                  URL:            ${TOOL_URL}
+                  BuildArch:      x86_64
+
+                  # GUI app — let rpmbuild's auto-requires inspect the bundled ELF
+                  # binaries and pull in system libraries (libGL, libxkbcommon,
+                  # wayland, ...) so dnf resolves them at install time. AutoProv
+                  # is disabled so the bundle's private libs aren't advertised as
+                  # provides to the rest of the system.
+                  AutoReq:        yes
+                  AutoProv:       no
+
+                  %description
+                  ${TOOL_SUMMARY}.
+                  This RPM repackages the upstream Linux/x86_64 tarball without
+                  modification: the bundle is installed under /usr/lib/${INSTALL_AS}/
+                  with a /usr/bin/${INSTALL_AS} symlink and the upstream .desktop and
+                  icon files surfaced at standard system paths.
+
+                  %install
+                  mkdir -p %{buildroot}/usr/lib
+                  cp -a ${WORKSPACE}/payload/usr/lib/${INSTALL_AS} %{buildroot}/usr/lib/
+
+                  mkdir -p %{buildroot}/usr/bin
+                  ln -s /usr/lib/${INSTALL_AS}/bin/${INSTALL_AS} \\
+                        %{buildroot}/usr/bin/${INSTALL_AS}
+
+                  mkdir -p %{buildroot}/usr/share/applications
+                  cp -a ${WORKSPACE}/payload/usr/share/applications/. \\
+                        %{buildroot}/usr/share/applications/
+
+                  if [ -d ${WORKSPACE}/payload/usr/share/icons ]; then
+                    mkdir -p %{buildroot}/usr/share/icons
+                    cp -a ${WORKSPACE}/payload/usr/share/icons/. \\
+                          %{buildroot}/usr/share/icons/
+                  fi
+
+                  %files
+                  /usr/lib/${INSTALL_AS}
+                  /usr/bin/${INSTALL_AS}
+                  /usr/share/applications/${APP_ID}.desktop
+                  /usr/share/icons/hicolor/*/apps/${INSTALL_AS}*
+
+                  %changelog
+                  * $(date '+%a %b %d %Y') GitHub Actions <actions@github.com> - ${TOOL_VERSION}-${PKG_RELEASE}
+                  - Repackaged from upstream release ${TOOL_VERSION}.
+                  EOF
+                  else
+                    cat > "$HOME/rpmbuild/SPECS/${TOOL_NAME}.spec" <<EOF
                   Name:           ${TOOL_NAME}
                   Version:        ${TOOL_VERSION}
                   Release:        ${PKG_RELEASE}%{?dist}
@@ -335,6 +456,7 @@ jobs:
                   * $(date '+%a %b %d %Y') GitHub Actions <actions@github.com> - ${TOOL_VERSION}-${PKG_RELEASE}
                   - Repackaged from upstream release ${TOOL_VERSION}.
                   EOF
+                  fi
 
             - name: Build RPM
               env:
@@ -416,7 +538,7 @@ jobs:
               run: |
                   dnf install -y rpms/*.rpm
                   echo "--- installed packages ---"
-                  rpm -qa | grep -E '^(eza|starship|virtctl|argocd|cilium|kubeseal|velero|lazyssh|kubectl-krew)-' | sort
+                  rpm -qa | grep -E '^(eza|starship|virtctl|argocd|cilium|kubeseal|velero|lazyssh|kubectl-krew|zed)-' | sort
 
             - name: Run smoke tests
               shell: bash
@@ -436,7 +558,7 @@ jobs:
 
                   # Allowlist of permitted first tokens. Keep this in sync with the
                   # `install_as` field of each matrix entry.
-                  allowed_bins=(eza starship virtctl argocd cilium kubeseal velero lazyssh kubectl-krew)
+                  allowed_bins=(eza starship virtctl argocd cilium kubeseal velero lazyssh kubectl-krew zed)
 
                   is_allowed() {
                     local b=$1
