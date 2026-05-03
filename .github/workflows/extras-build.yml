@@ -383,12 +383,23 @@ jobs:
                   BuildArch:      x86_64
 
                   # GUI app — let rpmbuild's auto-requires inspect the bundled ELF
-                  # binaries and pull in system libraries (libGL, libxkbcommon,
-                  # wayland, ...) so dnf resolves them at install time. AutoProv
+                  # binaries and pull in system libraries (libstdc++, libxkbcommon,
+                  # libasound, ...) so dnf resolves them at install time. AutoProv
                   # is disabled so the bundle's private libs aren't advertised as
                   # provides to the rest of the system.
                   AutoReq:        yes
                   AutoProv:       no
+
+                  # Skip autoreq scanning of the bundle's own lib/ directory. Those
+                  # libs (e.g. libglib NEEDS libpcre.so.3, libgobject NEEDS libffi.so.7)
+                  # find their deps through the binary's RPATH=\$ORIGIN/../lib, which
+                  # points at the bundled copies of pcre / ffi / etc. Without this,
+                  # rpmbuild promotes those internal deps to package-level Requires
+                  # that no Fedora package satisfies (libpcre.so.3 is a Debian soname).
+                  # The main binaries under bin/ and libexec/ are still scanned, so
+                  # legitimate system deps (libstdc++, libasound, glibc, ...) still
+                  # become Requires and dnf resolves them normally.
+                  %global __requires_exclude_from ^/usr/lib/${INSTALL_AS}/lib/.*\$
 
                   %description
                   ${TOOL_SUMMARY}.
