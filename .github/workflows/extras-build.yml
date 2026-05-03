@@ -563,6 +563,10 @@ jobs:
               #   2) exec the command via argv rather than `eval`, so shell
               #      metacharacters in the command field can't chain extra
               #      commands.
+              env:
+                  # The container runs as root; Zed refuses to start as root unless
+                  # this is set. Other tools ignore the variable.
+                  ZED_ALLOW_ROOT: "true"
               run: |
                   set -uo pipefail
                   fail=0; pass=0
