@@ -12,6 +12,7 @@
         "ansible",
         "atuin",
         "bootc",
+        "chezmoi",
         "clang",
         "clang-tools-extra",
         "cmake",
