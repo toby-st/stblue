@@ -83,6 +83,9 @@ VERSION=$(curl -s https://api.github.com/repos/opendidac/opendidac_desktop_relea
 #symlink terraform to opentofu
 ln -s /usr/sbin/tofu /usr/bin/terraform
 
+#add CUCurses.h to path
+cp /usr/share/doc/CUnit/html/headers/CUCurses.h /usr/include/CUnit/CUCurses.h
+
 #enable tailscale
 systemctl enable tailscaled
 
