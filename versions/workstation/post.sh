@@ -61,7 +61,7 @@ fi
 
 shred -u "$MOK_PRIV"
 
-pipx install --system-site-packages --global solaar
+pipx install --backend pip --system-site-packages --global solaar
 
 # Load Logitech HID kernel modules on boot
 curl https://raw.githubusercontent.com/pwr-Solaar/Solaar/refs/heads/master/rules.d-uinput/42-logitech-unify-permissions.rules > /etc/udev/rules.d/42-logitech-unify-permissions.rules
