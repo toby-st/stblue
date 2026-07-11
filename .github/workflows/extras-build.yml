@@ -26,13 +26,13 @@ jobs:
                 tool:
                     # renovate: datasource=github-releases depName=eza-community/eza versioning=semver extractVersion=^v(?<version>.+)$
                     - name: eza
-                      version: "0.23.4"
+                      version: "0.23.5"
                       # curl target → sha file layout → extraction → final binary name
-                      url: "https://github.com/eza-community/eza/releases/download/v0.23.4/eza_x86_64\
+                      url: "https://github.com/eza-community/eza/releases/download/v0.23.5/eza_x86_64\
                           -unknown-linux-gnu.tar.gz"
                       # eza embeds the sha256 only in the release notes, not as a
                       # downloadable file — use sha_inline instead of sha.
-                      sha_inline: "0c38665440226cd8bef5d1d4f3bc6ff77c927fb0d68b752739105db7ab5b358d"
+                      sha_inline: "35c70c5c43c29108075e58b893234c67ef585f0b53a7eaf8e9e7d4eec9f339b4"
                       kind: tar.gz
                       binary_in_archive: "./eza"
                       install_as: "eza"
@@ -41,14 +41,14 @@ jobs:
                       # Smoke test — must exit 0 and must contain the version (grep is
                       # anchored to the matrix version so a wrong binary fails loudly).
                       smoke_cmd: "eza --version"
-                      smoke_grep: "0.23.4"
+                      smoke_grep: "0.23.5"
 
                     # renovate: datasource=github-releases depName=starship/starship versioning=semver extractVersion=^v(?<version>.+)$
                     - name: starship
-                      version: "1.25.0"
-                      url: "https://github.com/starship/starship/releases/download/v1.25.0/starship-x\
+                      version: "1.26.0"
+                      url: "https://github.com/starship/starship/releases/download/v1.26.0/starship-x\
                           86_64-unknown-linux-gnu.tar.gz"
-                      sha: "https://github.com/starship/starship/releases/download/v1.25.0/starship-x\
+                      sha: "https://github.com/starship/starship/releases/download/v1.26.0/starship-x\
                           86_64-unknown-linux-gnu.tar.gz.sha256"
                       kind: tar.gz
                       binary_in_archive: "./starship"
@@ -56,16 +56,16 @@ jobs:
                       summary: "The minimal, blazing-fast, customizable prompt for any shell"
                       license: "ISC"
                       smoke_cmd: "starship --version"
-                      smoke_grep: "1.25.0"
+                      smoke_grep: "1.26.0"
 
                     # renovate: datasource=github-releases depName=kubevirt/kubevirt versioning=semver extractVersion=^v(?<version>.+)$
                     - name: virtctl
-                      version: "1.8.2"
-                      url: "https://github.com/kubevirt/kubevirt/releases/download/v1.8.2/virtctl-v1.\
-                          8.2-linux-amd64"
+                      version: "1.8.4"
+                      url: "https://github.com/kubevirt/kubevirt/releases/download/v1.8.4/virtctl-v1.\
+                          8.4-linux-amd64"
                       # virtctl embeds the sha256 only in the release notes, not as a
                       # downloadable file — use sha_inline instead of sha.
-                      sha_inline: "745f3c58c6a77be65b828e67b6ad930e9039ab293ed5b2bef6d44c8681af5b75"
+                      sha_inline: "7125d69c3b3e9c8185c106d9cdf77a817491e4657ac47f4509fb40d7aea59cca"
                       kind: raw
                       binary_in_archive: "./virtctl"
                       install_as: "virtctl"
@@ -73,14 +73,14 @@ jobs:
                       license: "Apache-2.0"
                       # `virtctl version` tries to contact a cluster; --client stays local.
                       smoke_cmd: "virtctl version --client"
-                      smoke_grep: "v1.8.2"
+                      smoke_grep: "v1.8.4"
 
                     # renovate: datasource=github-releases depName=argoproj/argo-cd versioning=semver extractVersion=^v(?<version>.+)$
                     - name: argocd
-                      version: "3.3.8"
-                      url: "https://github.com/argoproj/argo-cd/releases/download/v3.3.8/argocd-linux\
+                      version: "3.4.5"
+                      url: "https://github.com/argoproj/argo-cd/releases/download/v3.4.5/argocd-linux\
                           -amd64"
-                      sha: "https://github.com/argoproj/argo-cd/releases/download/v3.3.8/cli_checksum\
+                      sha: "https://github.com/argoproj/argo-cd/releases/download/v3.4.5/cli_checksum\
                           s.txt"
                       sha_grep: "argocd-linux-amd64"
                       kind: raw
@@ -90,14 +90,14 @@ jobs:
                       license: "Apache-2.0"
                       # `argocd version` tries the server too; --client keeps it offline.
                       smoke_cmd: "argocd version --client"
-                      smoke_grep: "v3.3.8"
+                      smoke_grep: "v3.4.5"
 
                     # renovate: datasource=github-releases depName=cilium/cilium-cli versioning=semver extractVersion=^v(?<version>.+)$
                     - name: cilium
-                      version: "0.19.2"
-                      url: "https://github.com/cilium/cilium-cli/releases/download/v0.19.2/cilium-lin\
+                      version: "0.19.5"
+                      url: "https://github.com/cilium/cilium-cli/releases/download/v0.19.5/cilium-lin\
                           ux-amd64.tar.gz"
-                      sha: "https://github.com/cilium/cilium-cli/releases/download/v0.19.2/cilium-lin\
+                      sha: "https://github.com/cilium/cilium-cli/releases/download/v0.19.5/cilium-lin\
                           ux-amd64.tar.gz.sha256sum"
                       kind: tar.gz
                       binary_in_archive: "./cilium"
@@ -105,17 +105,17 @@ jobs:
                       summary: "CLI to install, manage and troubleshoot Cilium"
                       license: "Apache-2.0"
                       smoke_cmd: "cilium version --client"
-                      smoke_grep: "v0.19.2"
+                      smoke_grep: "v0.19.5"
 
                     # renovate: datasource=github-releases depName=bitnami-labs/sealed-secrets versioning=semver extractVersion=^v(?<version>.+)$
                     - name: kubeseal
-                      version: "0.36.6"
-                      url: "https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.36.6/\
-                          kubeseal-0.36.6-linux-amd64.tar.gz"
+                      version: "0.38.4"
+                      url: "https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.38.4/\
+                          kubeseal-0.38.4-linux-amd64.tar.gz"
                       # Aggregated sha file — script handles the grep.
-                      sha: "https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.36.6/\
-                          sealed-secrets_0.36.6_checksums.txt"
-                      sha_grep: "kubeseal-0.36.6-linux-amd64.tar.gz"
+                      sha: "https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.38.4/\
+                          sealed-secrets_0.38.4_checksums.txt"
+                      sha_grep: "kubeseal-0.38.4-linux-amd64.tar.gz"
                       kind: tar.gz
                       binary_in_archive: "./kubeseal"
                       install_as: "kubeseal"
@@ -124,26 +124,26 @@ jobs:
                       # kubeseal signs with a static key rather than keyless OIDC.
                       verify_cosign: true
                       cosign_pubkey: "https://github.com/bitnami-labs/sealed-secrets/releases/downloa\
-                          d/v0.36.6/cosign.pub"
+                          d/v0.38.4/cosign.pub"
                       cosign_sig: "https://github.com/bitnami-labs/sealed-secrets/releases/download/v\
-                          0.36.6/kubeseal-0.36.6-linux-amd64.tar.gz.sig"
+                          0.38.4/kubeseal-0.38.4-linux-amd64.tar.gz.sig"
                       smoke_cmd: "kubeseal --version"
-                      smoke_grep: "0.36.6"
+                      smoke_grep: "0.38.4"
 
                     # renovate: datasource=github-releases depName=vmware-tanzu/velero versioning=semver extractVersion=^v(?<version>.+)$
                     - name: velero
-                      version: "1.18.0"
-                      url: "https://github.com/vmware-tanzu/velero/releases/download/v1.18.0/velero-v\
-                          1.18.0-linux-amd64.tar.gz"
-                      sha: "https://github.com/vmware-tanzu/velero/releases/download/v1.18.0/CHECKSUM"
-                      sha_grep: "velero-v1.18.0-linux-amd64.tar.gz"
+                      version: "1.18.2"
+                      url: "https://github.com/vmware-tanzu/velero/releases/download/v1.18.2/velero-v\
+                          1.18.2-linux-amd64.tar.gz"
+                      sha: "https://github.com/vmware-tanzu/velero/releases/download/v1.18.2/CHECKSUM"
+                      sha_grep: "velero-v1.18.2-linux-amd64.tar.gz"
                       kind: tar.gz
-                      binary_in_archive: "./velero-v1.18.0-linux-amd64/velero"
+                      binary_in_archive: "./velero-v1.18.2-linux-amd64/velero"
                       install_as: "velero"
                       summary: "Back up and migrate Kubernetes applications and volumes"
                       license: "Apache-2.0"
                       smoke_cmd: "velero version --client-only"
-                      smoke_grep: "v1.18.0"
+                      smoke_grep: "v1.18.2"
 
                     # renovate: datasource=github-releases depName=Adembc/lazyssh versioning=semver extractVersion=^v(?<version>.+)$
                     - name: lazyssh
@@ -161,28 +161,6 @@ jobs:
                       # to prove the binary is executable and not truncated.
                       smoke_cmd: "lazyssh --help"
                       smoke_grep: "lazyssh"
-
-                    # renovate: datasource=github-releases depName=zed-industries/zed versioning=semver extractVersion=^v(?<version>.+)$
-                    - name: zed
-                      version: "1.0.0"
-                      url: "https://github.com/zed-industries/zed/releases/download/v1.0.0/zed-linux-\
-                          x86_64.tar.gz"
-                      # Zed's GitHub release does not publish a separate .sha256 file —
-                      # the digest is only embedded in the release page. Use sha_inline.
-                      sha_inline: "2aad4b35481bdb0ed055fd6b402edbf216ffcb8af6b244069eec4b06a311d72f"
-                      # App-bundle install (multi-file). Adapted from the upstream
-                      # install.sh shipped at .github/workflows/install.sh.
-                      kind: app
-                      # Top-level directory inside the tarball.
-                      app_dir_in_archive: "zed.app"
-                      # Reverse-DNS app id; matches the .desktop file basename in
-                      # zed.app/share/applications/.
-                      app_id: "dev.zed.Zed"
-                      install_as: "zed"
-                      summary: "A high-performance, multiplayer code editor"
-                      license: "AGPL-3.0-or-later"
-                      smoke_cmd: "zed --version"
-                      smoke_grep: "1.0.0"
 
                     # renovate: datasource=github-releases depName=kubernetes-sigs/krew versioning=semver extractVersion=^v(?<version>.+)$
                     - name: krew
@@ -549,7 +527,7 @@ jobs:
               run: |
                   dnf install -y rpms/*.rpm
                   echo "--- installed packages ---"
-                  rpm -qa | grep -E '^(eza|starship|virtctl|argocd|cilium|kubeseal|velero|lazyssh|kubectl-krew|zed)-' | sort
+                  rpm -qa | grep -E '^(eza|starship|virtctl|argocd|cilium|kubeseal|velero|lazyssh|kubectl-krew)-' | sort
 
             - name: Run smoke tests
               shell: bash
@@ -563,17 +541,13 @@ jobs:
               #   2) exec the command via argv rather than `eval`, so shell
               #      metacharacters in the command field can't chain extra
               #      commands.
-              env:
-                  # The container runs as root; Zed refuses to start as root unless
-                  # this is set. Other tools ignore the variable.
-                  ZED_ALLOW_ROOT: "true"
               run: |
                   set -uo pipefail
                   fail=0; pass=0
 
                   # Allowlist of permitted first tokens. Keep this in sync with the
                   # `install_as` field of each matrix entry.
-                  allowed_bins=(eza starship virtctl argocd cilium kubeseal velero lazyssh kubectl-krew zed)
+                  allowed_bins=(eza starship virtctl argocd cilium kubeseal velero lazyssh kubectl-krew)
 
                   is_allowed() {
                     local b=$1
