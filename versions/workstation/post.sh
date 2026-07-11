@@ -68,7 +68,7 @@ curl https://raw.githubusercontent.com/pwr-Solaar/Solaar/refs/heads/master/rules
 echo "hid-logitech-dj" >> /etc/modules-load.d/logitech.conf && echo hid-logitech-hidpp >> /etc/modules-load.d/logitech.conf
 
 GHCR="ghcr.io/toby-st/stblue/rpm"
-TOOLS=(eza starship virtctl argocd cilium kubeseal velero lazyssh krew zed)
+TOOLS=(eza starship virtctl argocd cilium kubeseal velero lazyssh krew)
 mkdir -p /tmp/extra-rpms
 for tool in "${TOOLS[@]}"; do
     (cd /tmp/extra-rpms && oras pull "ghcr.io/toby-st/stblue/rpm/${tool}:latest")
@@ -76,6 +76,18 @@ done
 mapfile -t rpms < <(find /tmp/extra-rpms -name '*.rpm')
 dnf install -y "${rpms[@]}"
 rm -rf /tmp/extra-rpms
+#install azure-cli from Microsoft's package repo
+rpm --import https://packages.microsoft.com/keys/microsoft.asc
+cat > /etc/yum.repos.d/azure-cli.repo <<'EOF'
+[azure-cli]
+name=Azure CLI
+baseurl=https://packages.microsoft.com/yumrepos/azure-cli
+enabled=1
+gpgcheck=1
+gpgkey=https://packages.microsoft.com/keys/microsoft.asc
+EOF
+dnf install -y azure-cli
+
 #install eval
 VERSION=$(curl -s https://api.github.com/repos/opendidac/opendidac_desktop_release/releases/latest | grep -oP '"tag_name": "\K[^"]+') \
     && dnf install -y https://github.com/opendidac/opendidac_desktop_release/releases/download/${VERSION}/opendidac_desktop-${VERSION#v}-1.x86_64.rpm
