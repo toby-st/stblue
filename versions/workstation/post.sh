@@ -89,8 +89,13 @@ EOF
 dnf install -y azure-cli
 
 #install eval
-VERSION=$(curl -s https://api.github.com/repos/opendidac/opendidac_desktop_release/releases/latest | grep -oP '"tag_name": "\K[^"]+') \
-    && dnf install -y https://github.com/opendidac/opendidac_desktop_release/releases/download/${VERSION}/opendidac_desktop-${VERSION#v}-1.x86_64.rpm
+VERSION=$(curl -s https://api.github.com/repos/opendidac/opendidac_desktop_release/releases/latest | grep -oP '"tag_name": "\K[^"]+')
+if [[ -z "$VERSION" ]]; then
+    echo "ERROR: could not determine latest opendidac_desktop release version." >&2
+    exit 1
+fi
+dnf install -y "https://github.com/opendidac/opendidac_desktop_release/releases/download/${VERSION}/opendidac_desktop-${VERSION#v}-1.x86_64.rpm"
+rpm -q opendidac_desktop
 
 #symlink terraform to opentofu
 ln -s /usr/sbin/tofu /usr/bin/terraform
