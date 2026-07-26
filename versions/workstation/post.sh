@@ -88,13 +88,41 @@ gpgkey=https://packages.microsoft.com/keys/microsoft.asc
 EOF
 dnf install -y azure-cli
 
+
+#install latest stable proton-pass
+PROTON_PASS_JSON=$(curl -s https://proton.me/download/PassDesktop/linux/x64/version.json)
+PROTON_PASS_RPM_URL=$(echo "$PROTON_PASS_JSON" | jq -r '[.Releases[] | select(.CategoryName == "Stable")][0].File[] | select(.Identifier | contains("rpm")) | .Url')
+PROTON_PASS_SHA512=$(echo "$PROTON_PASS_JSON" | jq -r '[.Releases[] | select(.CategoryName == "Stable")][0].File[] | select(.Identifier | contains("rpm")) | .Sha512CheckSum')
+if [[ -z "$PROTON_PASS_RPM_URL" || -z "$PROTON_PASS_SHA512" ]]; then
+    echo "ERROR: could not determine latest stable proton-pass rpm." >&2
+    exit 1
+fi
+curl -L "$PROTON_PASS_RPM_URL" -o /tmp/proton-pass.rpm
+echo "$PROTON_PASS_SHA512  /tmp/proton-pass.rpm" | sha512sum -c -
+dnf install -y /tmp/proton-pass.rpm
+rpm -q proton-pass
+
+#install latest stable proton-pass-cli
+PASS_CLI_JSON=$(curl -s https://proton.me/download/pass-cli/versions.json)
+PASS_CLI_URL=$(echo "$PASS_CLI_JSON" | jq -r '.passCliVersions.urls.linux.x86_64.url')
+PASS_CLI_HASH=$(echo "$PASS_CLI_JSON" | jq -r '.passCliVersions.urls.linux.x86_64.hash')
+if [[ -z "$PASS_CLI_URL" || -z "$PASS_CLI_HASH" ]]; then
+    echo "ERROR: could not determine latest stable pass-cli binary." >&2
+    exit 1
+fi
+curl -L "$PASS_CLI_URL" -o /usr/local/bin/pass-cli
+echo "$PASS_CLI_HASH  /usr/local/bin/pass-cli" | sha256sum -c -
+chmod +x /usr/local/bin/pass-cli
+
+
 #install eval
 VERSION=$(curl -s https://api.github.com/repos/opendidac/opendidac_desktop_release/releases/latest | grep -oP '"tag_name": "\K[^"]+')
 if [[ -z "$VERSION" ]]; then
     echo "ERROR: could not determine latest opendidac_desktop release version." >&2
     exit 1
 fi
-dnf install -y "https://github.com/opendidac/opendidac_desktop_release/releases/download/${VERSION}/opendidac_desktop-${VERSION#v}-1.x86_64.rpm"
+curl -L "https://github.com/opendidac/opendidac_desktop_release/releases/download/${VERSION}/opendidac_desktop-${VERSION#v}-1.x86_64.rpm" -o /tmp/opendidac_desktop.rpm
+rpm -i --replacefiles /tmp/opendidac_desktop.rpm
 rpm -q opendidac_desktop
 
 #symlink terraform to opentofu
@@ -116,5 +144,6 @@ dnf install -y /tmp/gp_ui.rpm
 wget -qO- https://raw.githubusercontent.com/SmartFinn/eve-ng-integration/master/install.sh | sh
 
 dnf install -y --setopt=tsflags=noscripts proton-vpn-gnome-desktop
+
 dnf -y autoremove
 dnf clean all
