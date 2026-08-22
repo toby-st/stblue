@@ -1,5 +1,22 @@
 set -ouex pipefail
 
+if ! rpm -q --whatprovides /usr/bin/sh >/dev/null 2>&1; then
+    echo "rpmdb file index is unusable, rebuilding it" >&2
+    rpm --rebuilddb || true
+    REBUILT="$(ls -d /usr/share/rpmrebuilddb.* 2>/dev/null | head -1 || true)"
+    if [[ -z "$REBUILT" || ! -f "$REBUILT/rpmdb.sqlite" ]]; then
+        echo "ERROR: rpm --rebuilddb produced no usable database." >&2
+        exit 1
+    fi
+    rm -f /usr/share/rpm/rpmdb.sqlite \
+          /usr/share/rpm/rpmdb.sqlite-shm \
+          /usr/share/rpm/rpmdb.sqlite-wal
+    cp "$REBUILT/rpmdb.sqlite" /usr/share/rpm/rpmdb.sqlite
+    rm -rf "$REBUILT"
+    # Fail loudly rather than carrying a half-repaired database into the image.
+    rpm -q --whatprovides /usr/bin/sh >/dev/null
+fi
+
 RELEASE="$(rpm -E %fedora)"
 
 MOK_DER="/usr/local/etc/mok.der"
