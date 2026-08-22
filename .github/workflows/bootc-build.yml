@@ -28,6 +28,19 @@ jobs:
     steps:
       - name: Checkout Push to Registry action
         uses: actions/checkout@v5.0.0
+      - name: Use the kernel overlay driver for podman storage
+        run: |
+          sudo mkdir -p /etc/containers
+          sudo tee /etc/containers/storage.conf >/dev/null <<'EOF'
+          [storage]
+          driver = "overlay"
+          runroot = "/var/run/containers/storage"
+          graphroot = "/var/lib/containers/storage"
+
+          [storage.options.overlay]
+          mountopt = "nodev"
+          EOF
+          sudo podman info --format '{{.Store.GraphDriverName}} {{.Store.GraphOptions}}'
       - name: Matrix Variables
         run: |
           echo "MAJOR_VERSION=${{ matrix.major_version }}" >> $GITHUB_ENV
