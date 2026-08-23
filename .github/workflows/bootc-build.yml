@@ -5,8 +5,18 @@ on:
   schedule:
     - cron: "0 3 * * *" # 3 am everyday
   workflow_dispatch:
+
+# A PR push should supersede the build still running for the previous push.
+# Scheduled/dispatch builds are never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   IMAGE_REGISTRY: ghcr.io/${{ github.repository_owner }}
+  # Pin the registry credentials to one path so root podman and root skopeo
+  # agree on where they live regardless of how sudo mangles XDG_RUNTIME_DIR.
+  REGISTRY_AUTH_FILE: /tmp/auth.json
 
 jobs:
   build-push-workstation:
@@ -67,9 +77,48 @@ jobs:
 
           echo "alias_tags=${alias_tags[*]}" >> $GITHUB_OUTPUT
 
+      - name: Force native overlayfs for podman storage
+        run: |
+          set -euxo pipefail
+          # runner-images >= ubuntu24/20260810.271 replaced apt's podman 4.9.3 with
+          # the podman-static 5.8.4 bundle, which ships an /etc/containers/storage.conf
+          # setting mount_program=/usr/local/bin/fuse-overlayfs (plus fsync=0) for root
+          # builds too. That put the whole build through FUSE: ~3x slower end to end,
+          # and it breaks rpm --rebuilddb's rename() of /usr/share/rpm, which is what
+          # corrupted the rpmdb between layers. Pin the driver ourselves so a future
+          # bundle change cannot silently reintroduce it.
+          sudo podman system reset -f || true
+          sudo install -d /etc/containers
+          sudo tee /etc/containers/storage.conf >/dev/null <<'EOF'
+          [storage]
+          driver = "overlay"
+          runroot = "/run/containers/storage"
+          graphroot = "/var/lib/containers/storage"
+          [storage.options.overlay]
+          mountopt = "nodev"
+          EOF
+          # Must report "overlay" with no overlay.mount_program.
+          sudo podman info --format '{{.Store.GraphDriverName}} {{.Store.GraphOptions}}'
+
+      - name: Free up runner disk space
+        run: |
+          set -euxo pipefail
+          # The rechunker needs room for the image, a BareUser ostree repo copy of it
+          # and the chunked output at the same time. None of this preinstalled
+          # tooling is used by this build.
+          df -h /
+          sudo rm -rf \
+            /usr/local/lib/android \
+            /usr/share/dotnet \
+            /usr/share/swift \
+            /usr/local/.ghcup \
+            /opt/ghc \
+            /opt/hostedtoolcache/CodeQL
+          df -h /
+
       - name: Log in to GHCR (for pulling private images)
         run: |
-          echo "${{ github.token }}" | sudo podman login ghcr.io -u ${{ github.actor }} --password-stdin
+          echo "${{ github.token }}" | sudo -E podman login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build Image
         id: build_image
@@ -78,7 +127,12 @@ jobs:
           TAGS=(${{ steps.generate-tags.outputs.alias_tags }})
           RECHUNKED="${{ env.IMAGE_NAME }}:rechunked"
 
+          # --layers=false commits once at the end instead of after every
+          # instruction. Intermediate layers are worthless on an ephemeral runner
+          # and the rechunker rewrites the layer structure anyway, so all those
+          # full-rootfs layer commits were pure overhead.
           sudo -E podman build \
+            --layers=false \
             --build-arg IMAGE_NAME=${{ matrix.image_name }} \
             --build-arg MAJOR_VERSION=${{ env.MAJOR_VERSION }} \
             --build-arg BASE_IMAGE=${{ env.BASE_IMAGE }} \
@@ -87,6 +141,12 @@ jobs:
             -f ./Containerfile.bootc \
             .
 
+          # --previous-build anchors the layer plan to the image already published.
+          # Without it the runner has no local :rechunked to compare against, so every
+          # daily build re-plans from scratch and all ~64 layers get fresh digests --
+          # a full re-upload on push and a full re-download for every `bootc upgrade`.
+          # Only the remote manifest is fetched (anonymously -- this relies on the
+          # package staying public), never the layers.
           sudo podman run --rm \
             --privileged \
             --security-opt label=disable \
@@ -95,6 +155,7 @@ jobs:
             rpm-ostree compose build-chunked-oci \
               --bootc \
               --format-version=2 \
+              --previous-build=docker://${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
               --from=localhost/${{ env.IMAGE_NAME }} \
               --output=containers-storage:localhost/${RECHUNKED}
 
@@ -117,22 +178,34 @@ jobs:
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: |
           set -ouex pipefail
-          echo "${{ github.token }}" | sudo podman login ghcr.io -u ${{ github.actor }} --password-stdin
+          echo "${{ github.token }}" | sudo -E podman login ghcr.io -u ${{ github.actor }} --password-stdin
 
           echo "${KEY_2025_11_B64}" | base64 -d > /tmp/cosign.key
 
+          REPO="${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}"
           TAGS=(${{ steps.build_image.outputs.tags }})
-          for TAG in "${TAGS[@]}"; do
-            sudo podman push \
-              --sign-by-sigstore-private-key=/tmp/cosign.key \
-              "${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG}"
-          done
+          PRIMARY="${TAGS[0]}"
+
+          # Upload the image exactly once. Every tag resolves to the same manifest
+          # digest and the sigstore attachment is keyed by digest, so this one
+          # signature covers all of them.
+          sudo -E podman push \
+            --sign-by-sigstore-private-key=/tmp/cosign.key \
+            "${REPO}:${PRIMARY}"
 
           rm -f /tmp/cosign.key
 
-          DIGEST=$(sudo podman inspect --format='{{index .RepoDigests 0}}' \
-            "${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${TAGS[0]}" \
-            | cut -d@ -f2)
+          # The remaining tags are copies within the same repository, so the registry
+          # mounts the existing blobs instead of accepting an upload. podman re-read
+          # every layer out of local storage for each extra `podman push`, which cost
+          # about three minutes per tag.
+          for TAG in "${TAGS[@]:1}"; do
+            sudo -E skopeo copy --all --preserve-digests \
+              "docker://${REPO}:${PRIMARY}" \
+              "docker://${REPO}:${TAG}"
+          done
+
+          DIGEST=$(sudo -E skopeo inspect --format='{{.Digest}}' "docker://${REPO}:${PRIMARY}")
           echo "digest=${DIGEST}" >> $GITHUB_OUTPUT
         env:
           KEY_2025_11_B64: ${{ secrets.KEY_2025_11_B64 }}

@@ -17,8 +17,8 @@ RUN --mount=type=secret,id=mok_priv_b64 \
 RUN set -xe; \
     kver=$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-core | head -1); \
     depmod -a "$kver"; \
-    env DRACUT_NO_XATTR=1 dracut -vf /usr/lib/modules/$kver/initramfs.img "$kver"
-RUN rm -rf /tmp/*
+    env DRACUT_NO_XATTR=1 dracut -vf /usr/lib/modules/$kver/initramfs.img "$kver"; \
+    rm -rf /tmp/*
 RUN bootc container lint
 
 LABEL org.opencontainers.image.source=https://github.com/toby-st/stblue
