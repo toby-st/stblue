@@ -59,6 +59,7 @@
         "libva-intel-media-driver",
         "libva-utils",
         "libnfc",
+        "maven",
         "opentofu",
         "pam-u2f",
         "pamu2fcfg",
@@ -89,6 +90,7 @@
         "vim",
         "webkitgtk6.0-devel",
         "wireshark",
+        "zip",
         "zsh",
         "zstd"
     ],
