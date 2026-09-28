@@ -142,6 +142,24 @@ curl -L "https://github.com/opendidac/opendidac_desktop_release/releases/downloa
 rpm -i --replacefiles /tmp/opendidac_desktop.rpm
 rpm -q opendidac_desktop
 
+#install latest staruml
+STARUML_BASE="https://files.staruml.io/releases-v7"
+STARUML_YML=$(curl -s "$STARUML_BASE/latest-linux.yml")
+STARUML_RPM=$(echo "$STARUML_YML" | grep -oP '^\s*- url: \K\S+\.x86_64\.rpm' || true)
+STARUML_SHA512=$(echo "$STARUML_YML" | grep -A1 -F "$STARUML_RPM" | grep -oP '^\s*sha512: \K\S+' || true)
+if [[ -z "$STARUML_RPM" || -z "$STARUML_SHA512" ]]; then
+    echo "ERROR: could not determine latest staruml rpm." >&2
+    exit 1
+fi
+curl -L "$STARUML_BASE/$STARUML_RPM" -o /tmp/staruml.rpm
+# latest-linux.yml carries a base64-encoded sha512, not hex
+if [[ "$(openssl dgst -sha512 -binary /tmp/staruml.rpm | base64 -w0)" != "$STARUML_SHA512" ]]; then
+    echo "ERROR: staruml rpm checksum mismatch." >&2
+    exit 1
+fi
+dnf install -y /tmp/staruml.rpm
+rpm -q StarUML
+
 #symlink terraform to opentofu
 ln -s /usr/sbin/tofu /usr/bin/terraform
 
