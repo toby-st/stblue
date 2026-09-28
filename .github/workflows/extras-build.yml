@@ -632,7 +632,9 @@ jobs:
             # update both the version and the SHA256. Renovate's github-releases
             # datasource can also manage this (datasource=github-releases
             # depName=oras-project/oras) if you add a hint comment.
-            ORAS_VERSION: "1.3.4"
+            # Must be a version listed in setup-oras's bundled releases.json —
+            # setup-oras@v2.0.1 knows up to 1.3.3. Bump the action first.
+            ORAS_VERSION: "1.3.3"
             # Always move :latest so consumers using that tag get the current build.
             MOVE_LATEST: "true"
         steps:
@@ -640,7 +642,7 @@ jobs:
               # Official action from the ORAS project — verifies the release via
               # SHA256 from the published checksums file automatically.
               # Pin the action with Renovate's helpers:pinGitHubActionDigestsToSemver.
-              uses: oras-project/setup-oras@v1.2.3
+              uses: oras-project/setup-oras@v2.0.1
               with:
                   version: ${{ env.ORAS_VERSION }}
 
