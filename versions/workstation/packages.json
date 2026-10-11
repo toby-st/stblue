@@ -48,6 +48,8 @@
         "golang",
         "golang-oras",
         "gtk4-devel",
+        "hplip",
+        "hplip-gui",
         "helm",
         "iwlwifi-mvm-firmware",
         "java",
