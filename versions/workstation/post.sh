@@ -169,6 +169,9 @@ cp /usr/share/doc/CUnit/html/headers/CUCurses.h /usr/include/CUnit/CUCurses.h
 #enable tailscale
 systemctl enable tailscaled
 
+#enable docker (socket-activated)
+systemctl enable docker.socket
+
 #fix read-only dir for global protect
 mkdir /var/paloaltonetworks
 ln -s /var/paloaltonetworks /opt/paloaltonetworks
