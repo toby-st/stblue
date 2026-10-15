@@ -72,40 +72,61 @@ jobs:
           echo "${{ github.token }}" | sudo podman login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build Image
-        id: build_image
         run: |
           set -ouex pipefail
-          TAGS=(${{ steps.generate-tags.outputs.alias_tags }})
-          RECHUNKED="${{ env.IMAGE_NAME }}:rechunked"
-
           sudo -E podman build \
             --build-arg IMAGE_NAME=${{ matrix.image_name }} \
             --build-arg MAJOR_VERSION=${{ env.MAJOR_VERSION }} \
             --build-arg BASE_IMAGE=${{ env.BASE_IMAGE }} \
             --secret id=mok_priv_b64,env=MOK_PRIV_B64 \
-            -t ${{ env.IMAGE_NAME }} \
+            -t localhost/${{ env.IMAGE_NAME }}:unchunked \
             -f ./Containerfile.bootc \
             .
+        env:
+          MOK_PRIV_B64: ${{ secrets.MOK_PRIV_B64 }}
 
+      # Split the image into content-based layers, so an update only downloads
+      # the packages that changed. Uses the chunkah that ships in fedora-bootc.
+      - name: Rechunk with chunkah
+        id: rechunk
+        run: |
+          set -ouex pipefail
+          TAGS=(${{ steps.generate-tags.outputs.alias_tags }})
+          UNCHUNKED="localhost/${{ env.IMAGE_NAME }}:unchunked"
+          OUT="$(sudo mktemp -d /var/tmp/chunkah.XXXXXX)"
+          sudo podman inspect "${UNCHUNKED}" > /tmp/chunkah-config.json
+
+          # files that aren't from an RPM get their mtime clamped to the commit
+          # time, so unchanged content produces identical layers from day to day
           sudo podman run --rm \
-            --privileged \
             --security-opt label=disable \
-            -v /var/lib/containers/storage:/var/lib/containers/storage \
-            ${{ env.IMAGE_NAME }} \
-            rpm-ostree compose build-chunked-oci \
-              --bootc \
-              --format-version=2 \
-              --from=localhost/${{ env.IMAGE_NAME }} \
-              --output=containers-storage:localhost/${RECHUNKED}
+            --mount=type=image,src="${UNCHUNKED}",target=/chunkah \
+            -v /tmp/chunkah-config.json:/run/chunkah-config.json:ro \
+            -v "${OUT}:/run/out" \
+            --entrypoint chunkah \
+            "${UNCHUNKED}" \
+            build \
+              --rootfs /chunkah \
+              --max-layers 128 \
+              --prune /sysroot/ \
+              --label ostree.commit- --label ostree.final-diffid- \
+              --config /run/chunkah-config.json \
+              --source-date-epoch "$(git log -1 --format=%ct)" \
+              --output oci:/run/out/chunked
+
+          # drop the unchunked image before importing, so the runner never holds
+          # more than two copies
+          sudo podman rmi "${UNCHUNKED}"
+          CHUNKED="$(sudo podman pull -q "oci:${OUT}/chunked")"
+          sudo rm -rf "${OUT}"
+          sudo podman inspect "${CHUNKED}" --format '{{len .RootFS.Layers}} layers, {{.Size}} bytes'
 
           for TAG in "${TAGS[@]}"; do
-            sudo podman tag "localhost/${RECHUNKED}" "${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG}"
+            sudo podman tag "${CHUNKED}" "${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG}"
           done
 
           echo "image=${{ env.IMAGE_NAME }}" >> $GITHUB_OUTPUT
           echo "tags=${TAGS[*]}" >> $GITHUB_OUTPUT
-        env:
-          MOK_PRIV_B64: ${{ secrets.MOK_PRIV_B64 }}
 
       - name: Configure sigstore attachments
         run: |
@@ -121,7 +142,7 @@ jobs:
 
           echo "${KEY_2025_11_B64}" | base64 -d > /tmp/cosign.key
 
-          TAGS=(${{ steps.build_image.outputs.tags }})
+          TAGS=(${{ steps.rechunk.outputs.tags }})
           for TAG in "${TAGS[@]}"; do
             sudo podman push \
               --sign-by-sigstore-private-key=/tmp/cosign.key \
