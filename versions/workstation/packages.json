@@ -86,6 +86,7 @@
         "qt6-qtdeclarative-devel",
         "rsync",
         "smartmontools",
+        "systemd-oomd-defaults",
         "tailscale",
         "tbtools",
         "tcpdump",
@@ -96,6 +97,7 @@
         "webkitgtk6.0-devel",
         "wireshark",
         "zip",
+        "zram-generator-defaults",
         "zsh",
         "zstd"
     ],
