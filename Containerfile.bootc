@@ -2,23 +2,29 @@ ARG IMAGE_NAME="${IMAGE_NAME:-workstation}"
 ARG MAJOR_VERSION="${MAJOR_VERSION:-43}"
 ARG BASE_IMAGE="${BASE_IMAGE:-quay.io/fedora/fedora-bootc}"
 
+# build scripts are bind-mounted instead of copied, so they never end up in a layer
+FROM scratch AS ctx
+COPY versions /versions
+COPY bootc-build.sh /build.sh
+
 FROM ${BASE_IMAGE}:${MAJOR_VERSION} AS main
 ARG IMAGE_NAME
-COPY versions/$IMAGE_NAME/* /tmp/
-ADD bootc-build.sh /tmp/build.sh
 COPY files/ /
-COPY --from=ghcr.io/toby-st/gp:latest /gp_ui.rpm /tmp/gp_ui.rpm
 
-RUN /tmp/pre.sh || echo "nothing to run"
-RUN /tmp/build.sh
-RUN --mount=type=secret,id=mok_priv_b64 \
-    MOK_PRIV_B64="$(cat /run/secrets/mok_priv_b64 2>/dev/null || echo '')" bash /tmp/post.sh
-
-RUN set -xe; \
+# one RUN instead of one per script: a single layer commit, and nothing written to
+# the tmpfs /tmp (downloads, the MOK key) ever reaches a layer
+RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
+    --mount=type=bind,from=ghcr.io/toby-st/gp:latest,source=/,target=/gp \
+    --mount=type=tmpfs,target=/tmp \
+    --mount=type=secret,id=mok_priv_b64 \
+    set -xe; \
+    cp /ctx/versions/$IMAGE_NAME/* /ctx/build.sh /gp/gp_ui.rpm /tmp/; \
+    if [ -f /tmp/pre.sh ]; then bash /tmp/pre.sh; fi; \
+    bash /tmp/build.sh; \
+    MOK_PRIV_B64="$(cat /run/secrets/mok_priv_b64 2>/dev/null || echo '')" bash /tmp/post.sh; \
     kver=$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-core | head -1); \
     depmod -a "$kver"; \
     env DRACUT_NO_XATTR=1 dracut -vf /usr/lib/modules/$kver/initramfs.img "$kver"
-RUN rm -rf /tmp/*
 RUN bootc container lint
 
 LABEL org.opencontainers.image.source=https://github.com/toby-st/stblue

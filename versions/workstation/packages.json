@@ -18,7 +18,6 @@
         "clang-tools-extra",
         "cmake",
         "code",
-        "code-insiders",
         "conntrack-tools",
         "CUnit",
         "CUnit-devel",
