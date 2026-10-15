@@ -183,5 +183,33 @@ wget -qO- https://raw.githubusercontent.com/SmartFinn/eve-ng-integration/master/
 
 dnf install -y --setopt=tsflags=noscripts proton-vpn-gnome-desktop
 
+#install HP's proprietary hplip plugin (needed for scanning on e.g. the
+#LaserJet MFP M377dw). hp-plugin can't write to /usr on a booted bootc system,
+#so it has to be baked into the image. The plugin version must match hplip.
+HPLIP_VERSION="$(rpm -q --qf '%{VERSION}' hplip)"
+HPLIP_PLUGIN="hplip-${HPLIP_VERSION}-plugin.run"
+HPLIP_KEY="82FFA7C6AA7411D934BDE173AC69536A2CF3A243"
+mkdir -p /tmp/hplip-plugin/gnupg
+chmod 700 /tmp/hplip-plugin/gnupg
+curl -fsSL "https://www.openprinting.org/download/printdriver/auxfiles/HP/plugins/${HPLIP_PLUGIN}" -o "/tmp/hplip-plugin/${HPLIP_PLUGIN}"
+curl -fsSL "https://www.openprinting.org/download/printdriver/auxfiles/HP/plugins/${HPLIP_PLUGIN}.asc" -o "/tmp/hplip-plugin/${HPLIP_PLUGIN}.asc"
+curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x${HPLIP_KEY}" \
+    | gpg --homedir /tmp/hplip-plugin/gnupg --batch --import
+gpg --homedir /tmp/hplip-plugin/gnupg --batch --status-fd 1 \
+    --verify "/tmp/hplip-plugin/${HPLIP_PLUGIN}.asc" "/tmp/hplip-plugin/${HPLIP_PLUGIN}" \
+    | grep "^\[GNUPG:\] VALIDSIG .*${HPLIP_KEY}" >/dev/null
+sh "/tmp/hplip-plugin/${HPLIP_PLUGIN}" --noexec --nox11 --target /tmp/hplip-plugin/extracted
+# installPlugin.py is the root half of hp-plugin; calling it directly skips the
+# interactive license prompt and the su/sudo wrapper that fail in a container
+(cd /tmp/hplip-plugin/extracted && python3 installPlugin.py)
+# /usr/local is /var/usrlocal on bootc and never reaches existing installs
+mv /usr/local/lib/libjpeg-x86_64.so.9.2.0 /usr/lib64/
+ln -sf libjpeg-x86_64.so.9.2.0 /usr/lib64/libjpeg.so.9
+rm -f /usr/lib/libjpeg.so.9 /usr/local/lib/libjpeg.so.9
+# hplip reads the plugin state from /var, which bootc doesn't update; ship it in
+# /usr and let tmpfiles.d link it into place
+mv /var/lib/hp/hplip.state /usr/share/hplip/hplip.state
+rm -rf /tmp/hplip-plugin
+
 dnf -y autoremove
 dnf clean all

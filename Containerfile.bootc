@@ -12,7 +12,7 @@ COPY --from=ghcr.io/toby-st/gp:latest /gp_ui.rpm /tmp/gp_ui.rpm
 RUN /tmp/pre.sh || echo "nothing to run"
 RUN /tmp/build.sh
 RUN --mount=type=secret,id=mok_priv_b64 \
-    MOK_PRIV_B64="$(cat /run/secrets/mok_priv_b64 2>/dev/null || echo '')" /tmp/post.sh
+    MOK_PRIV_B64="$(cat /run/secrets/mok_priv_b64 2>/dev/null || echo '')" bash /tmp/post.sh
 
 RUN set -xe; \
     kver=$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-core | head -1); \
