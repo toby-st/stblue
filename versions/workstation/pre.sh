@@ -15,6 +15,19 @@ dnf install -y https://repo.protonvpn.com/fedora-${RELEASE}-unstable/protonvpn-b
 
 curl -L "https://pkgs.tailscale.com/stable/fedora/tailscale.repo" -o /etc/yum.repos.d/tailscale.repo
 
+# upstream Kubernetes repo for kubectl; each minor version has its own repo, so
+# bump KUBE_MINOR to move to a new minor release
+KUBE_MINOR="v1.37"
+cat > /etc/yum.repos.d/kubernetes.repo <<REPO
+[kubernetes]
+name=Kubernetes
+baseurl=https://pkgs.k8s.io/core:/stable:/${KUBE_MINOR}/rpm/
+enabled=1
+gpgcheck=1
+gpgkey=https://pkgs.k8s.io/core:/stable:/${KUBE_MINOR}/rpm/repodata/repomd.xml.key
+includepkgs=kubectl
+REPO
+
 # ublue-os COPR, restricted to gnome-rounded-blur so nothing else from it gets pulled in
 cat > /etc/yum.repos.d/ublue-os-packages.repo <<REPO
 [copr:copr.fedorainfracloud.org:ublue-os:packages]
