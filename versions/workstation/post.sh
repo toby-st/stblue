@@ -85,7 +85,7 @@ curl https://raw.githubusercontent.com/pwr-Solaar/Solaar/refs/heads/master/rules
 echo "hid-logitech-dj" >> /etc/modules-load.d/logitech.conf && echo hid-logitech-hidpp >> /etc/modules-load.d/logitech.conf
 
 GHCR="ghcr.io/toby-st/stblue/rpm"
-TOOLS=(eza starship virtctl argocd cilium kubeseal velero lazyssh krew)
+TOOLS=(eza starship virtctl argocd cilium kubeseal velero lazyssh krew helm helmfile helm-diff kustomize talosctl)
 mkdir -p /tmp/extra-rpms
 for tool in "${TOOLS[@]}"; do
     (cd /tmp/extra-rpms && oras pull "ghcr.io/toby-st/stblue/rpm/${tool}:latest")
