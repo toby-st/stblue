@@ -1,0 +1,33 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    "helpers:pinGitHubActionDigestsToSemver"
+  ],
+  "schedule": ["before 6am on monday"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Tool versions in the extras-build matrix, read from the `# renovate:` comment above each entry. Every other version-dependent field uses {version}, so only `version:` changes.",
+      "managerFilePatterns": ["/^\\.github/workflows/extras-build\\.yml$/"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: versioning=(?<versioning>\\S+))?(?: extractVersion=(?<extractVersion>\\S+))?\\s+- name: \\S+\\s+version: \"(?<currentValue>[^\"]+)\"",
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: versioning=(?<versioning>\\S+))?(?: extractVersion=(?<extractVersion>\\S+))?\\s+ORAS_VERSION: \"(?<currentValue>[^\"]+)\""
+      ]
+    }
+  ],
+  "packageRules": [
+    {
+      "matchManagers": ["github-actions"],
+      "matchDepTypes": ["action"],
+      "groupName": "GitHub Actions"
+    },
+    {
+      "description": "Fedora major bumps are done by hand, together with Containerfile.bootc and the bootc-build matrix.",
+      "matchDepNames": ["fedora"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    }
+  ]
+}
