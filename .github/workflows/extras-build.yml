@@ -24,15 +24,20 @@ jobs:
             fail-fast: false
             matrix:
                 tool:
+                    # Renovate bumps only the `version:` line under each `# renovate:`
+                    # comment. Every other field that depends on the version spells it
+                    # `{version}`; the "Resolve version placeholders" step fills it in.
+                    # Don't split a `{version}` across a `\` line continuation.
+
                     # renovate: datasource=github-releases depName=eza-community/eza versioning=semver extractVersion=^v(?<version>.+)$
                     - name: eza
                       version: "0.23.5"
                       # curl target → sha file layout → extraction → final binary name
-                      url: "https://github.com/eza-community/eza/releases/download/v0.23.5/eza_x86_64\
-                          -unknown-linux-gnu.tar.gz"
-                      # eza embeds the sha256 only in the release notes, not as a
-                      # for the release asset — use sha_inline instead of sha.
-                      sha_inline: "35c70c5c43c29108075e58b893234c67ef585f0b53a7eaf8e9e7d4eec9f339b4"
+                      url: "https://github.com/eza-community/eza/releases/download/v{version}/\
+                          eza_x86_64-unknown-linux-gnu.tar.gz"
+                      # eza embeds the sha256 only in the release notes, not as a release
+                      # asset — check against the digest GitHub records for the asset.
+                      sha_github_digest: true
                       kind: tar.gz
                       binary_in_archive: "./eza"
                       install_as: "eza"
@@ -41,31 +46,31 @@ jobs:
                       # Smoke test — must exit 0 and must contain the version (grep is
                       # anchored to the matrix version so a wrong binary fails loudly).
                       smoke_cmd: "eza --version"
-                      smoke_grep: "0.23.5"
+                      smoke_grep: "{version}"
 
                     # renovate: datasource=github-releases depName=starship/starship versioning=semver extractVersion=^v(?<version>.+)$
                     - name: starship
                       version: "1.27.0"
-                      url: "https://github.com/starship/starship/releases/download/v1.27.0/starship-x\
-                          86_64-unknown-linux-gnu.tar.gz"
-                      sha: "https://github.com/starship/starship/releases/download/v1.27.0/starship-x\
-                          86_64-unknown-linux-gnu.tar.gz.sha256"
+                      url: "https://github.com/starship/starship/releases/download/v{version}/\
+                          starship-x86_64-unknown-linux-gnu.tar.gz"
+                      sha: "https://github.com/starship/starship/releases/download/v{version}/\
+                          starship-x86_64-unknown-linux-gnu.tar.gz.sha256"
                       kind: tar.gz
                       binary_in_archive: "./starship"
                       install_as: "starship"
                       summary: "The minimal, blazing-fast, customizable prompt for any shell"
                       license: "ISC"
                       smoke_cmd: "starship --version"
-                      smoke_grep: "1.27.0"
+                      smoke_grep: "{version}"
 
                     # renovate: datasource=github-releases depName=kubevirt/kubevirt versioning=semver extractVersion=^v(?<version>.+)$
                     - name: virtctl
                       version: "1.9.1"
-                      url: "https://github.com/kubevirt/kubevirt/releases/download/v1.9.1/virtctl-v1.\
-                          9.1-linux-amd64"
-                      # virtctl publishes no checksum file; this is the sha256 GitHub records
-                      # for the release asset — use sha_inline instead of sha.
-                      sha_inline: "c289393c8186a258653594605f5199b4c171a3131e6e409ed204a96b491b782a"
+                      url: "https://github.com/kubevirt/kubevirt/releases/download/v{version}/\
+                          virtctl-v{version}-linux-amd64"
+                      # virtctl publishes no checksum file — check against the digest
+                      # GitHub records for the release asset.
+                      sha_github_digest: true
                       kind: raw
                       binary_in_archive: "./virtctl"
                       install_as: "virtctl"
@@ -73,15 +78,15 @@ jobs:
                       license: "Apache-2.0"
                       # `virtctl version` tries to contact a cluster; --client stays local.
                       smoke_cmd: "virtctl version --client"
-                      smoke_grep: "v1.9.1"
+                      smoke_grep: "v{version}"
 
                     # renovate: datasource=github-releases depName=argoproj/argo-cd versioning=semver extractVersion=^v(?<version>.+)$
                     - name: argocd
                       version: "3.5.6"
-                      url: "https://github.com/argoproj/argo-cd/releases/download/v3.5.6/argocd-linux\
-                          -amd64"
-                      sha: "https://github.com/argoproj/argo-cd/releases/download/v3.5.6/cli_checksum\
-                          s.txt"
+                      url: "https://github.com/argoproj/argo-cd/releases/download/v{version}/\
+                          argocd-linux-amd64"
+                      sha: "https://github.com/argoproj/argo-cd/releases/download/v{version}/\
+                          cli_checksums.txt"
                       sha_grep: "argocd-linux-amd64"
                       kind: raw
                       binary_in_archive: "./argocd"
@@ -90,32 +95,32 @@ jobs:
                       license: "Apache-2.0"
                       # `argocd version` tries the server too; --client keeps it offline.
                       smoke_cmd: "argocd version --client"
-                      smoke_grep: "v3.5.6"
+                      smoke_grep: "v{version}"
 
                     # renovate: datasource=github-releases depName=cilium/cilium-cli versioning=semver extractVersion=^v(?<version>.+)$
                     - name: cilium
                       version: "0.20.1"
-                      url: "https://github.com/cilium/cilium-cli/releases/download/v0.20.1/cilium-lin\
-                          ux-amd64.tar.gz"
-                      sha: "https://github.com/cilium/cilium-cli/releases/download/v0.20.1/cilium-lin\
-                          ux-amd64.tar.gz.sha256sum"
+                      url: "https://github.com/cilium/cilium-cli/releases/download/v{version}/\
+                          cilium-linux-amd64.tar.gz"
+                      sha: "https://github.com/cilium/cilium-cli/releases/download/v{version}/\
+                          cilium-linux-amd64.tar.gz.sha256sum"
                       kind: tar.gz
                       binary_in_archive: "./cilium"
                       install_as: "cilium"
                       summary: "CLI to install, manage and troubleshoot Cilium"
                       license: "Apache-2.0"
                       smoke_cmd: "cilium version --client"
-                      smoke_grep: "v0.20.1"
+                      smoke_grep: "v{version}"
 
                     # renovate: datasource=github-releases depName=bitnami-labs/sealed-secrets versioning=semver extractVersion=^v(?<version>.+)$
                     - name: kubeseal
                       version: "0.40.0"
-                      url: "https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.40.0/\
-                          kubeseal-0.40.0-linux-amd64.tar.gz"
+                      url: "https://github.com/bitnami-labs/sealed-secrets/releases/download/v{version}/\
+                          kubeseal-{version}-linux-amd64.tar.gz"
                       # Aggregated sha file — script handles the grep.
-                      sha: "https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.40.0/\
-                          sealed-secrets_0.40.0_checksums.txt"
-                      sha_grep: "kubeseal-0.40.0-linux-amd64.tar.gz"
+                      sha: "https://github.com/bitnami-labs/sealed-secrets/releases/download/v{version}/\
+                          sealed-secrets_{version}_checksums.txt"
+                      sha_grep: "kubeseal-{version}-linux-amd64.tar.gz"
                       kind: tar.gz
                       binary_in_archive: "./kubeseal"
                       install_as: "kubeseal"
@@ -123,34 +128,34 @@ jobs:
                       license: "Apache-2.0"
                       # kubeseal signs with a static key rather than keyless OIDC.
                       verify_cosign: true
-                      cosign_pubkey: "https://github.com/bitnami-labs/sealed-secrets/releases/downloa\
-                          d/v0.40.0/cosign.pub"
-                      cosign_sig: "https://github.com/bitnami-labs/sealed-secrets/releases/download/v\
-                          0.40.0/kubeseal-0.40.0-linux-amd64.tar.gz.sig"
+                      cosign_pubkey: "https://github.com/bitnami-labs/sealed-secrets/releases/download/v{version}/\
+                          cosign.pub"
+                      cosign_sig: "https://github.com/bitnami-labs/sealed-secrets/releases/download/v{version}/\
+                          kubeseal-{version}-linux-amd64.tar.gz.sig"
                       smoke_cmd: "kubeseal --version"
-                      smoke_grep: "0.40.0"
+                      smoke_grep: "{version}"
 
                     # renovate: datasource=github-releases depName=vmware-tanzu/velero versioning=semver extractVersion=^v(?<version>.+)$
                     - name: velero
                       version: "1.18.4"
-                      url: "https://github.com/vmware-tanzu/velero/releases/download/v1.18.4/velero-v\
-                          1.18.4-linux-amd64.tar.gz"
-                      sha: "https://github.com/vmware-tanzu/velero/releases/download/v1.18.4/CHECKSUM"
-                      sha_grep: "velero-v1.18.4-linux-amd64.tar.gz"
+                      url: "https://github.com/vmware-tanzu/velero/releases/download/v{version}/\
+                          velero-v{version}-linux-amd64.tar.gz"
+                      sha: "https://github.com/vmware-tanzu/velero/releases/download/v{version}/CHECKSUM"
+                      sha_grep: "velero-v{version}-linux-amd64.tar.gz"
                       kind: tar.gz
-                      binary_in_archive: "./velero-v1.18.4-linux-amd64/velero"
+                      binary_in_archive: "./velero-v{version}-linux-amd64/velero"
                       install_as: "velero"
                       summary: "Back up and migrate Kubernetes applications and volumes"
                       license: "Apache-2.0"
                       smoke_cmd: "velero version --client-only"
-                      smoke_grep: "v1.18.4"
+                      smoke_grep: "v{version}"
 
                     # renovate: datasource=github-releases depName=Adembc/lazyssh versioning=semver extractVersion=^v(?<version>.+)$
                     - name: lazyssh
                       version: "0.3.0"
-                      url: "https://github.com/Adembc/lazyssh/releases/download/v0.3.0/lazyssh_Linux_\
-                          x86_64.tar.gz"
-                      sha: "https://github.com/Adembc/lazyssh/releases/download/v0.3.0/checksums.txt"
+                      url: "https://github.com/Adembc/lazyssh/releases/download/v{version}/\
+                          lazyssh_Linux_x86_64.tar.gz"
+                      sha: "https://github.com/Adembc/lazyssh/releases/download/v{version}/checksums.txt"
                       sha_grep: "lazyssh_Linux_x86_64.tar.gz"
                       kind: tar.gz
                       binary_in_archive: "./lazyssh"
@@ -165,10 +170,10 @@ jobs:
                     # renovate: datasource=github-releases depName=kubernetes-sigs/krew versioning=semver extractVersion=^v(?<version>.+)$
                     - name: krew
                       version: "0.5.0"
-                      url: "https://github.com/kubernetes-sigs/krew/releases/download/v0.5.0/krew-lin\
-                          ux_amd64.tar.gz"
-                      sha: "https://github.com/kubernetes-sigs/krew/releases/download/v0.5.0/krew-lin\
-                          ux_amd64.tar.gz.sha256"
+                      url: "https://github.com/kubernetes-sigs/krew/releases/download/v{version}/\
+                          krew-linux_amd64.tar.gz"
+                      sha: "https://github.com/kubernetes-sigs/krew/releases/download/v{version}/\
+                          krew-linux_amd64.tar.gz.sha256"
                       kind: tar.gz
                       binary_in_archive: "./krew-linux_amd64"
                       # Installed as a kubectl plugin — `kubectl krew` finds /usr/bin/kubectl-krew.
@@ -178,30 +183,30 @@ jobs:
                       # Krew is invoked as a kubectl plugin in normal use, but the
                       # binary responds to `version` directly too.
                       smoke_cmd: "kubectl-krew version"
-                      smoke_grep: "v0.5.0"
+                      smoke_grep: "v{version}"
 
                     # Fedora's helm package lags upstream; repackage the official binary.
                     # renovate: datasource=github-releases depName=helm/helm versioning=semver extractVersion=^v(?<version>.+)$
                     - name: helm
                       version: "4.3.1"
-                      url: "https://get.helm.sh/helm-v4.3.1-linux-amd64.tar.gz"
-                      sha: "https://get.helm.sh/helm-v4.3.1-linux-amd64.tar.gz.sha256sum"
+                      url: "https://get.helm.sh/helm-v{version}-linux-amd64.tar.gz"
+                      sha: "https://get.helm.sh/helm-v{version}-linux-amd64.tar.gz.sha256sum"
                       kind: tar.gz
                       binary_in_archive: "./linux-amd64/helm"
                       install_as: "helm"
                       summary: "The Kubernetes package manager"
                       license: "Apache-2.0"
                       smoke_cmd: "helm version"
-                      smoke_grep: "v4.3.1"
+                      smoke_grep: "v{version}"
 
                     # renovate: datasource=github-releases depName=helmfile/helmfile versioning=semver extractVersion=^v(?<version>.+)$
                     - name: helmfile
                       version: "1.8.2"
-                      url: "https://github.com/helmfile/helmfile/releases/download/v1.8.2/helmfile_1\
-                          .8.2_linux_amd64.tar.gz"
-                      sha: "https://github.com/helmfile/helmfile/releases/download/v1.8.2/helmfile_1\
-                          .8.2_checksums.txt"
-                      sha_grep: "helmfile_1.8.2_linux_amd64.tar.gz"
+                      url: "https://github.com/helmfile/helmfile/releases/download/v{version}/\
+                          helmfile_{version}_linux_amd64.tar.gz"
+                      sha: "https://github.com/helmfile/helmfile/releases/download/v{version}/\
+                          helmfile_{version}_checksums.txt"
+                      sha_grep: "helmfile_{version}_linux_amd64.tar.gz"
                       kind: tar.gz
                       binary_in_archive: "./helmfile"
                       install_as: "helmfile"
@@ -209,16 +214,16 @@ jobs:
                       license: "MIT"
                       # `helmfile version` also checks GitHub for updates; --version stays offline.
                       smoke_cmd: "helmfile --version"
-                      smoke_grep: "1.8.2"
+                      smoke_grep: "{version}"
 
                     # renovate: datasource=github-releases depName=databus23/helm-diff versioning=semver extractVersion=^v(?<version>.+)$
                     - name: helm-diff
                       version: "3.15.15"
-                      url: "https://github.com/databus23/helm-diff/releases/download/v3.15.15/diff-3\
-                          .15.15-linux-amd64.tgz"
-                      sha: "https://github.com/databus23/helm-diff/releases/download/v3.15.15/helm-d\
-                          iff_3.15.15_checksums.txt"
-                      sha_grep: "diff-3.15.15-linux-amd64.tgz"
+                      url: "https://github.com/databus23/helm-diff/releases/download/v{version}/\
+                          diff-{version}-linux-amd64.tgz"
+                      sha: "https://github.com/databus23/helm-diff/releases/download/v{version}/\
+                          helm-diff_{version}_checksums.txt"
+                      sha_grep: "diff-{version}-linux-amd64.tgz"
                       kind: helm-plugin
                       app_dir_in_archive: "diff"
                       # Plugin directory name under /usr/lib/helm/plugins/ and in each
@@ -229,32 +234,32 @@ jobs:
                       # The test container has no user session to run user-tmpfiles, so
                       # exercise the plugin binary directly rather than via `helm diff`.
                       smoke_cmd: "/usr/lib/helm/plugins/diff/bin/diff version"
-                      smoke_grep: "3.15.15"
+                      smoke_grep: "{version}"
 
                     # renovate: datasource=github-releases depName=kubernetes-sigs/kustomize versioning=semver extractVersion=^kustomize/v(?<version>.+)$
                     - name: kustomize
                       version: "5.8.3"
                       # The release tag is "kustomize/v<version>", URL-encoded as %2F.
-                      url: "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize\
-                          %2Fv5.8.3/kustomize_v5.8.3_linux_amd64.tar.gz"
-                      sha: "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize\
-                          %2Fv5.8.3/checksums.txt"
-                      sha_grep: "kustomize_v5.8.3_linux_amd64.tar.gz"
+                      url: "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv{version}/\
+                          kustomize_v{version}_linux_amd64.tar.gz"
+                      sha: "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv{version}/\
+                          checksums.txt"
+                      sha_grep: "kustomize_v{version}_linux_amd64.tar.gz"
                       kind: tar.gz
                       binary_in_archive: "./kustomize"
                       install_as: "kustomize"
                       summary: "Template-free customization of Kubernetes YAML"
                       license: "Apache-2.0"
                       smoke_cmd: "kustomize version"
-                      smoke_grep: "v5.8.3"
+                      smoke_grep: "v{version}"
 
                     # renovate: datasource=github-releases depName=siderolabs/talos versioning=semver extractVersion=^v(?<version>.+)$
                     - name: talosctl
                       version: "1.14.4"
-                      url: "https://github.com/siderolabs/talos/releases/download/v1.14.4/talosctl-l\
-                          inux-amd64"
-                      sha: "https://github.com/siderolabs/talos/releases/download/v1.14.4/sha256sum.\
-                          txt"
+                      url: "https://github.com/siderolabs/talos/releases/download/v{version}/\
+                          talosctl-linux-amd64"
+                      sha: "https://github.com/siderolabs/talos/releases/download/v{version}/\
+                          sha256sum.txt"
                       sha_grep: "talosctl-linux-amd64"
                       kind: raw
                       binary_in_archive: "./talosctl"
@@ -263,14 +268,14 @@ jobs:
                       license: "MPL-2.0"
                       # `talosctl version` contacts a node; --client keeps it offline.
                       smoke_cmd: "talosctl version --client"
-                      smoke_grep: "v1.14.4"
+                      smoke_grep: "v{version}"
 
         steps:
             - name: Install build dependencies
               run: |
                   sudo apt-get update
                   sudo apt-get install -y --no-install-recommends \
-                    rpm tar curl ca-certificates
+                    rpm tar curl ca-certificates jq
 
             - name: Install cosign
               uses: sigstore/cosign-installer@v4.1.2
@@ -280,35 +285,76 @@ jobs:
                   mkdir -p downloads payload/usr/bin
                   mkdir -p "$HOME/rpmbuild"/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 
+            - name: Resolve version placeholders
+              # Substitute `{version}` in every version-dependent matrix field and
+              # export the results as T_* env vars for the steps below, so a
+              # Renovate bump of `version:` is the only edit an update needs.
+              env:
+                  TOOL_VERSION: ${{ matrix.tool.version }}
+                  URL: ${{ matrix.tool.url }}
+                  SHA: ${{ matrix.tool.sha }}
+                  SHA_GREP: ${{ matrix.tool.sha_grep }}
+                  BIN_IN_ARCHIVE: ${{ matrix.tool.binary_in_archive }}
+                  COSIGN_SIG: ${{ matrix.tool.cosign_sig }}
+                  COSIGN_CERT: ${{ matrix.tool.cosign_cert }}
+                  COSIGN_PUBKEY: ${{ matrix.tool.cosign_pubkey }}
+                  SMOKE_GREP: ${{ matrix.tool.smoke_grep }}
+              run: |
+                  set -euo pipefail
+                  [[ "$TOOL_VERSION" =~ ^[0-9][A-Za-z0-9._+~-]*$ ]] || { echo "::error::bad version"; exit 1; }
+                  for var in URL SHA SHA_GREP BIN_IN_ARCHIVE COSIGN_SIG COSIGN_CERT COSIGN_PUBKEY SMOKE_GREP; do
+                    val=${!var}
+                    # One line per entry in $GITHUB_ENV: a newline in a fork-controlled
+                    # matrix value would let it set arbitrary env vars.
+                    case "$val" in *$'\n'*|*$'\r'*) echo "::error::newline in $var"; exit 1;; esac
+                    val=${val//\{version\}/$TOOL_VERSION}
+                    if [[ "$val" == *"{version"* ]]; then
+                      echo "::error::unresolved {version} placeholder in $var: $val"; exit 1
+                    fi
+                    echo "T_${var}=${val}" >> "$GITHUB_ENV"
+                  done
+
             - name: Download binary
               working-directory: downloads
               env:
-                  URL: ${{ matrix.tool.url }}
-                  SHA: ${{ matrix.tool.sha }}
-                  SHA_INLINE: ${{ matrix.tool.sha_inline }}
+                  SHA_GITHUB_DIGEST: ${{ matrix.tool.sha_github_digest }}
+                  GH_TOKEN: ${{ github.token }}
               run: |
-                  curl -fsSL -o asset "$URL"
-                  if [[ -n "${SHA_INLINE:-}" ]]; then
-                    echo "${SHA_INLINE}  asset" > asset.sha.local
+                  set -euo pipefail
+                  curl -fsSL -o asset "$T_URL"
+                  if [[ "${SHA_GITHUB_DIGEST:-}" == "true" ]]; then
+                    # No upstream checksum file: use the sha256 digest GitHub records
+                    # for the release asset (the REST API's assets[].digest field).
+                    re='^https://github\.com/([A-Za-z0-9._-]+/[A-Za-z0-9._-]+)/releases/download/([^/]+)/([^/]+)$'
+                    [[ "$T_URL" =~ $re ]] || { echo "::error::sha_github_digest needs a GitHub release URL"; exit 1; }
+                    repo=${BASH_REMATCH[1]}; tag=${BASH_REMATCH[2]}; asset=${BASH_REMATCH[3]}
+                    digest=$(curl -fsSL \
+                      -H "Authorization: Bearer ${GH_TOKEN}" \
+                      -H "Accept: application/vnd.github+json" \
+                      "https://api.github.com/repos/${repo}/releases/tags/${tag}" \
+                      | jq -r --arg name "$asset" '.assets[] | select(.name == $name) | .digest // empty')
+                    [[ "$digest" =~ ^sha256:([0-9a-f]{64})$ ]] \
+                      || { echo "::error::no sha256 digest recorded for ${asset} in ${repo}@${tag}"; exit 1; }
+                    echo "${BASH_REMATCH[1]}  asset" > asset.sha.local
                   else
-                    curl -fsSL -o asset.sha "$SHA"
+                    curl -fsSL -o asset.sha "$T_SHA"
                   fi
 
             - name: Verify SHA256
               working-directory: downloads
               env:
-                  SHA_GREP: ${{ matrix.tool.sha_grep }}
-                  SHA_INLINE: ${{ matrix.tool.sha_inline }}
+                  SHA_GITHUB_DIGEST: ${{ matrix.tool.sha_github_digest }}
               run: |
                   set -euo pipefail
-                  # Four supported checksum-file layouts:
-                  #   a) inline hash provided directly via sha_inline (no file to parse)
+                  # Four supported checksum layouts:
+                  #   a) sha_github_digest: the asset digest from the GitHub API
                   #   b) per-asset file containing exactly "<hash>  <filename>"
                   #   c) per-asset file containing just "<hash>"
                   #   d) aggregated file ("sha256sum.txt"/"CHECKSUM"/"checksums.txt")
-                  #      — $SHA_GREP selects the right line. grep -F makes the match
+                  #      — sha_grep selects the right line. grep -F makes the match
                   #      literal so the matrix value can't be abused as a regex.
-                  if [[ -n "${SHA_INLINE:-}" ]]; then
+                  SHA_GREP=${T_SHA_GREP}
+                  if [[ "${SHA_GITHUB_DIGEST:-}" == "true" ]]; then
                     : # asset.sha.local already written by the download step
                   elif [[ -n "${SHA_GREP:-}" ]]; then
                     line=$(grep -F -- "$SHA_GREP" asset.sha | head -n1)
@@ -328,12 +374,12 @@ jobs:
               if: ${{ matrix.tool.verify_cosign == true }}
               working-directory: downloads
               env:
-                  COSIGN_SIG: ${{ matrix.tool.cosign_sig }}
-                  COSIGN_CERT: ${{ matrix.tool.cosign_cert }}
-                  COSIGN_PUBKEY: ${{ matrix.tool.cosign_pubkey }}
                   COSIGN_ID_REGEX: ${{ matrix.tool.cosign_identity_regexp }}
               run: |
                   set -euo pipefail
+                  COSIGN_SIG=${T_COSIGN_SIG}
+                  COSIGN_CERT=${T_COSIGN_CERT}
+                  COSIGN_PUBKEY=${T_COSIGN_PUBKEY}
                   curl -fsSL -o asset.sig "$COSIGN_SIG"
                   if [[ -n "${COSIGN_PUBKEY:-}" ]]; then
                     # Key-based verification (e.g. kubeseal).
@@ -356,13 +402,13 @@ jobs:
             - name: Stage binary from asset
               env:
                   KIND: ${{ matrix.tool.kind }}
-                  BIN_IN_ARCHIVE: ${{ matrix.tool.binary_in_archive }}
                   INSTALL_AS: ${{ matrix.tool.install_as }}
                   APP_DIR_IN_ARCHIVE: ${{ matrix.tool.app_dir_in_archive }}
                   APP_ID: ${{ matrix.tool.app_id }}
                   WORKSPACE: ${{ github.workspace }}
               run: |
                   set -euo pipefail
+                  BIN_IN_ARCHIVE=${T_BIN_IN_ARCHIVE}
                   cd downloads
                   case "$KIND" in
                     tar.gz) tar -xzf asset ;;
@@ -440,13 +486,13 @@ jobs:
                   TOOL_VERSION: ${{ matrix.tool.version }}
                   TOOL_SUMMARY: ${{ matrix.tool.summary }}
                   TOOL_LICENSE: ${{ matrix.tool.license }}
-                  TOOL_URL: ${{ matrix.tool.url }}
                   INSTALL_AS: ${{ matrix.tool.install_as }}
                   KIND: ${{ matrix.tool.kind }}
                   APP_ID: ${{ matrix.tool.app_id }}
                   WORKSPACE: ${{ github.workspace }}
               run: |
                   set -euo pipefail
+                  TOOL_URL=${T_URL}
                   # Validate inputs before splicing them into the spec. These fields
                   # come from the workflow matrix which is repo-trusted on main but
                   # fork-controlled on PRs — tight input checks prevent a malicious
@@ -612,9 +658,9 @@ jobs:
               env:
                   TOOL_NAME: ${{ matrix.tool.name }}
                   SMOKE_CMD: ${{ matrix.tool.smoke_cmd }}
-                  SMOKE_GREP: ${{ matrix.tool.smoke_grep }}
               run: |
                   set -euo pipefail
+                  SMOKE_GREP=${T_SMOKE_GREP}
                   rpm_file=$(basename out/*.rpm)
                   # Write with printf's own format string (no eval) and don't allow
                   # tab/newline in the fields — keeps the TSV one-line-per-entry.
@@ -774,24 +820,33 @@ jobs:
             contents: read
             packages: write
         env:
-            # Bumping: visit https://github.com/oras-project/oras/releases and
-            # update the version and the linux_amd64 SHA256 from
-            # oras_<version>_checksums.txt. Passing url + checksum lets us run
-            # versions newer than setup-oras's bundled releases.json
-            # (setup-oras@v2.0.2 only knows up to 1.3.4).
+            # Passing url + checksum lets us run versions newer than setup-oras's
+            # bundled releases.json (setup-oras@v2.0.2 only knows up to 1.3.4).
+            # The checksum is read from the release's checksums file below, so a
+            # bump is just this line.
+            # renovate: datasource=github-releases depName=oras-project/oras versioning=semver extractVersion=^v(?<version>.+)$
             ORAS_VERSION: "1.3.5"
-            ORAS_SHA256: "f48a73ea6d026a862c3919fc773da9a8c86fc259c2c737d5baed3b8b9614ad22"
             # Always move :latest so consumers using that tag get the current build.
             MOVE_LATEST: "true"
         steps:
+            - name: Look up ORAS checksum
+              id: oras_sha
+              run: |
+                  set -euo pipefail
+                  asset="oras_${ORAS_VERSION}_linux_amd64.tar.gz"
+                  sha=$(curl -fsSL "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_checksums.txt" \
+                    | awk -v a="$asset" '$2 == a {print $1}')
+                  [[ "$sha" =~ ^[0-9a-f]{64}$ ]] || { echo "::error::no sha256 for ${asset}"; exit 1; }
+                  echo "sha256=${sha}" >> "$GITHUB_OUTPUT"
+
             - name: Install ORAS
               # Official action from the ORAS project — verifies the download
-              # against ORAS_SHA256 before installing it.
+              # against the checksum above before installing it.
               # Pin the action with Renovate's helpers:pinGitHubActionDigestsToSemver.
               uses: oras-project/setup-oras@v2.0.2
               with:
                   url: https://github.com/oras-project/oras/releases/download/v${{ env.ORAS_VERSION }}/oras_${{ env.ORAS_VERSION }}_linux_amd64.tar.gz
-                  checksum: ${{ env.ORAS_SHA256 }}
+                  checksum: ${{ steps.oras_sha.outputs.sha256 }}
 
             - name: Install rpm
               # `rpm` isn't on the default ubuntu-24.04 runner; we need it to
