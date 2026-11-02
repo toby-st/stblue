@@ -20,10 +20,13 @@ jobs:
       fail-fast: false
       matrix:
         image_name: [workstation]
-        major_version: [44]
+        major_version: [44, 45]
         include:
           - major_version: 44
             is_stable_version: true
+            is_latest_version: false
+          - major_version: 45
+            is_stable_version: false
             is_latest_version: true
     steps:
       - name: Checkout Push to Registry action
