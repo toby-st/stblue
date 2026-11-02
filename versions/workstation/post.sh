@@ -220,8 +220,15 @@ mv /usr/local/lib/libjpeg-x86_64.so.9.2.0 /usr/lib64/
 ln -sf libjpeg-x86_64.so.9.2.0 /usr/lib64/libjpeg.so.9
 rm -f /usr/lib/libjpeg.so.9 /usr/local/lib/libjpeg.so.9
 # hplip reads the plugin state from /var, which bootc doesn't update; ship it in
-# /usr and let tmpfiles.d link it into place
-mv /var/lib/hp/hplip.state /usr/share/hplip/hplip.state
+# /usr and let tmpfiles.d link it into place. If a scriptlet already ran
+# systemd-tmpfiles during the build, the link exists and installPlugin.py wrote
+# through it, so the state is already in /usr.
+if [[ -L /var/lib/hp/hplip.state ]]; then
+    rm /var/lib/hp/hplip.state
+else
+    mv /var/lib/hp/hplip.state /usr/share/hplip/hplip.state
+fi
+test -s /usr/share/hplip/hplip.state
 rm -rf /tmp/hplip-plugin
 
 dnf -y autoremove
