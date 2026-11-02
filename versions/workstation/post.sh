@@ -151,7 +151,8 @@ if [[ -z "$VERSION" ]]; then
     exit 1
 fi
 curl -L "https://github.com/opendidac/opendidac_desktop_release/releases/download/${VERSION}/opendidac_desktop-${VERSION#v}-1.x86_64.rpm" -o /tmp/opendidac_desktop.rpm
-rpm -i --replacefiles /tmp/opendidac_desktop.rpm
+# upstream doesn't sign the rpm, and rpm 6 (F45+) refuses unsigned packages by default
+rpm -i --replacefiles --nosignature /tmp/opendidac_desktop.rpm
 rpm -q opendidac_desktop
 
 #install latest staruml
