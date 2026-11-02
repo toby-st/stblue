@@ -752,7 +752,7 @@ jobs:
               run: |
                   dnf install -y rpms/*.rpm
                   echo "--- installed packages ---"
-                  rpm -qa | grep -E '^(eza|starship|virtctl|argocd|cilium|kubeseal|velero|lazyssh|kubectl-krew|helm|helmfile|helm-diff|kustomize|talosctl)-' | sort
+                  rpm -qa | grep -E '^(eza|starship|virtctl|argocd|cilium|kubeseal|velero|lazyssh|kubectl-krew|helm|helmfile|helm-diff|kustomize|talosctl|oras|etcdctl)-' | sort
 
             - name: Run smoke tests
               shell: bash
@@ -773,7 +773,8 @@ jobs:
                   # Allowlist of permitted first tokens. Keep this in sync with the
                   # `install_as` field of each matrix entry.
                   allowed_bins=(eza starship virtctl argocd cilium kubeseal velero lazyssh kubectl-krew
-                                helm helmfile kustomize talosctl /usr/lib/helm/plugins/diff/bin/diff)
+                                helm helmfile kustomize talosctl oras etcdctl
+                                /usr/lib/helm/plugins/diff/bin/diff)
 
                   is_allowed() {
                     local b=$1
