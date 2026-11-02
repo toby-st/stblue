@@ -84,11 +84,23 @@ pipx install --backend pip --system-site-packages --global solaar
 curl https://raw.githubusercontent.com/pwr-Solaar/Solaar/refs/heads/master/rules.d-uinput/42-logitech-unify-permissions.rules > /etc/udev/rules.d/42-logitech-unify-permissions.rules
 echo "hid-logitech-dj" >> /etc/modules-load.d/logitech.conf && echo hid-logitech-hidpp >> /etc/modules-load.d/logitech.conf
 
+# Fedora no longer ships oras, so fetch a pinned, checksum-verified binary just
+# to pull the extras; the image's own oras comes from the extras below.
+# renovate: datasource=github-releases depName=oras-project/oras versioning=semver extractVersion=^v(?<version>.+)$
+ORAS_VERSION="1.3.6"
+ORAS_ASSET="oras_${ORAS_VERSION}_linux_amd64.tar.gz"
+ORAS_BASE="https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}"
+mkdir -p /tmp/oras
+curl -fsSL "${ORAS_BASE}/${ORAS_ASSET}" -o "/tmp/oras/${ORAS_ASSET}"
+curl -fsSL "${ORAS_BASE}/oras_${ORAS_VERSION}_checksums.txt" \
+    | awk -v a="$ORAS_ASSET" '$2 == a' > /tmp/oras/checksums.txt
+(cd /tmp/oras && sha256sum -c checksums.txt && tar -xzf "$ORAS_ASSET" oras)
+
 GHCR="ghcr.io/toby-st/stblue/rpm"
-TOOLS=(eza starship virtctl argocd cilium kubeseal velero lazyssh krew helm helmfile helm-diff kustomize talosctl)
+TOOLS=(eza starship virtctl argocd cilium kubeseal velero lazyssh krew helm helmfile helm-diff kustomize talosctl oras etcdctl)
 mkdir -p /tmp/extra-rpms
 for tool in "${TOOLS[@]}"; do
-    (cd /tmp/extra-rpms && oras pull "ghcr.io/toby-st/stblue/rpm/${tool}:latest")
+    (cd /tmp/extra-rpms && /tmp/oras/oras pull "ghcr.io/toby-st/stblue/rpm/${tool}:latest")
 done
 mapfile -t rpms < <(find /tmp/extra-rpms -name '*.rpm')
 dnf install -y "${rpms[@]}"

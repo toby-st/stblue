@@ -12,10 +12,13 @@
     {
       "customType": "regex",
       "description": "Tool versions in the extras-build matrix, read from the `# renovate:` comment above each entry. Every other version-dependent field uses {version}, so only `version:` changes.",
-      "managerFilePatterns": ["/^\\.github/workflows/extras-build\\.yml$/"],
+      "managerFilePatterns": [
+        "/^\\.github/workflows/extras-build\\.yml$/",
+        "/^versions/workstation/post\\.sh$/"
+      ],
       "matchStrings": [
         "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: versioning=(?<versioning>\\S+))?(?: extractVersion=(?<extractVersion>\\S+))?\\s+- name: \\S+\\s+version: \"(?<currentValue>[^\"]+)\"",
-        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: versioning=(?<versioning>\\S+))?(?: extractVersion=(?<extractVersion>\\S+))?\\s+ORAS_VERSION: \"(?<currentValue>[^\"]+)\""
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: versioning=(?<versioning>\\S+))?(?: extractVersion=(?<extractVersion>\\S+))?\\s+ORAS_VERSION(?:: |=)\"(?<currentValue>[^\"]+)\""
       ]
     }
   ],

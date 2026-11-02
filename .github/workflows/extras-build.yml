@@ -270,6 +270,40 @@ jobs:
                       smoke_cmd: "talosctl version --client"
                       smoke_grep: "v{version}"
 
+                    # Retired from Fedora 45 (golang-oras was orphaned); repackage upstream.
+                    # renovate: datasource=github-releases depName=oras-project/oras versioning=semver extractVersion=^v(?<version>.+)$
+                    - name: oras
+                      version: "1.3.6"
+                      url: "https://github.com/oras-project/oras/releases/download/v{version}/\
+                          oras_{version}_linux_amd64.tar.gz"
+                      sha: "https://github.com/oras-project/oras/releases/download/v{version}/\
+                          oras_{version}_checksums.txt"
+                      sha_grep: "oras_{version}_linux_amd64.tar.gz"
+                      kind: tar.gz
+                      binary_in_archive: "./oras"
+                      install_as: "oras"
+                      summary: "OCI registry client for pushing and pulling artifacts"
+                      license: "Apache-2.0"
+                      smoke_cmd: "oras version"
+                      smoke_grep: "{version}"
+
+                    # Retired from Fedora 45 (fails to build); ship just the client.
+                    # renovate: datasource=github-releases depName=etcd-io/etcd versioning=semver extractVersion=^v(?<version>.+)$
+                    - name: etcdctl
+                      version: "3.7.3"
+                      url: "https://github.com/etcd-io/etcd/releases/download/v{version}/\
+                          etcd-v{version}-linux-amd64.tar.gz"
+                      sha: "https://github.com/etcd-io/etcd/releases/download/v{version}/\
+                          SHA256SUMS"
+                      sha_grep: "etcd-v{version}-linux-amd64.tar.gz"
+                      kind: tar.gz
+                      binary_in_archive: "./etcd-v{version}-linux-amd64/etcdctl"
+                      install_as: "etcdctl"
+                      summary: "Command-line client for etcd"
+                      license: "Apache-2.0"
+                      smoke_cmd: "etcdctl version"
+                      smoke_grep: "{version}"
+
         steps:
             - name: Install build dependencies
               run: |
