@@ -5,7 +5,6 @@
     ":dependencyDashboard",
     "helpers:pinGitHubActionDigestsToSemver"
   ],
-  "schedule": ["before 6am on monday"],
   "automerge": true,
   "platformAutomerge": false,
   "customManagers": [
@@ -27,6 +26,11 @@
       "matchManagers": ["github-actions"],
       "matchDepTypes": ["action"],
       "groupName": "GitHub Actions"
+    },
+    {
+      "description": "Major updates (runner images, action majors) get a PR, but a human merges them.",
+      "matchUpdateTypes": ["major"],
+      "automerge": false
     },
     {
       "description": "Fedora major bumps are done by hand, together with Containerfile.bootc and the bootc-build matrix.",
