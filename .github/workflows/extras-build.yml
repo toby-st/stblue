@@ -99,7 +99,7 @@ jobs:
 
                     # renovate: datasource=github-releases depName=cilium/cilium-cli versioning=semver extractVersion=^v(?<version>.+)$
                     - name: cilium
-                      version: "0.20.1"
+                      version: "0.20.3"
                       url: "https://github.com/cilium/cilium-cli/releases/download/v{version}/\
                           cilium-linux-amd64.tar.gz"
                       sha: "https://github.com/cilium/cilium-cli/releases/download/v{version}/\
