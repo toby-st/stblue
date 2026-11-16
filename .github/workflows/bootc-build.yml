@@ -77,7 +77,7 @@ jobs:
       - name: Build Image
         run: |
           set -ouex pipefail
-          sudo -E podman build \
+          sudo --preserve-env=MOK_PRIV_B64 podman build \
             --build-arg IMAGE_NAME=${{ matrix.image_name }} \
             --build-arg MAJOR_VERSION=${{ env.MAJOR_VERSION }} \
             --build-arg BASE_IMAGE=${{ env.BASE_IMAGE }} \
