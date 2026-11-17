@@ -23,6 +23,12 @@
   ],
   "packageRules": [
     {
+      "description": "One PR for all minor/patch updates. Renovate merges one branch per run and every merge rebases and rebuilds the rest, so separate PRs take one run each. Listed first so the GitHub Actions group below still wins for actions.",
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "non-major dependencies",
+      "groupSlug": "non-major"
+    },
+    {
       "matchManagers": ["github-actions"],
       "matchDepTypes": ["action"],
       "groupName": "GitHub Actions"
