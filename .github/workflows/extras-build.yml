@@ -114,7 +114,7 @@ jobs:
 
                     # renovate: datasource=github-releases depName=bitnami-labs/sealed-secrets versioning=semver extractVersion=^v(?<version>.+)$
                     - name: kubeseal
-                      version: "0.40.0"
+                      version: "0.41.2"
                       url: "https://github.com/bitnami-labs/sealed-secrets/releases/download/v{version}/\
                           kubeseal-{version}-linux-amd64.tar.gz"
                       # Aggregated sha file — script handles the grep.
