@@ -188,7 +188,7 @@ jobs:
                     # Fedora's helm package lags upstream; repackage the official binary.
                     # renovate: datasource=github-releases depName=helm/helm versioning=semver extractVersion=^v(?<version>.+)$
                     - name: helm
-                      version: "4.3.1"
+                      version: "4.3.2"
                       url: "https://get.helm.sh/helm-v{version}-linux-amd64.tar.gz"
                       sha: "https://get.helm.sh/helm-v{version}-linux-amd64.tar.gz.sha256sum"
                       kind: tar.gz
