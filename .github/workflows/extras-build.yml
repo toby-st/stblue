@@ -201,7 +201,7 @@ jobs:
 
                     # renovate: datasource=github-releases depName=helmfile/helmfile versioning=semver extractVersion=^v(?<version>.+)$
                     - name: helmfile
-                      version: "1.8.2"
+                      version: "1.8.4"
                       url: "https://github.com/helmfile/helmfile/releases/download/v{version}/\
                           helmfile_{version}_linux_amd64.tar.gz"
                       sha: "https://github.com/helmfile/helmfile/releases/download/v{version}/\
