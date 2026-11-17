@@ -255,7 +255,7 @@ jobs:
 
                     # renovate: datasource=github-releases depName=siderolabs/talos versioning=semver extractVersion=^v(?<version>.+)$
                     - name: talosctl
-                      version: "1.14.4"
+                      version: "1.14.6"
                       url: "https://github.com/siderolabs/talos/releases/download/v{version}/\
                           talosctl-linux-amd64"
                       sha: "https://github.com/siderolabs/talos/releases/download/v{version}/\
