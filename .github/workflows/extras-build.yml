@@ -19,7 +19,7 @@ env:
 jobs:
     build:
         name: Build ${{ matrix.tool.name }}
-        runs-on: ubuntu-24.04
+        runs-on: ubuntu-26.04
         strategy:
             fail-fast: false
             matrix:
@@ -724,7 +724,7 @@ jobs:
     test:
         name: Smoke-test RPMs
         needs: build
-        runs-on: ubuntu-24.04
+        runs-on: ubuntu-26.04
         container:
             # Same family as the likely consumer base (Fedora/RHEL/UBI). Pinned
             # by major version — bump deliberately.
@@ -850,7 +850,7 @@ jobs:
             github.event_name == 'push' || (github.event_name == 'pull_request'
             &&
              github.event.pull_request.head.repo.full_name == github.repository)
-        runs-on: ubuntu-24.04
+        runs-on: ubuntu-26.04
         permissions:
             contents: read
             packages: write
