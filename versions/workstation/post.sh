@@ -87,7 +87,7 @@ echo "hid-logitech-dj" >> /etc/modules-load.d/logitech.conf && echo hid-logitech
 # Fedora no longer ships oras, so fetch a pinned, checksum-verified binary just
 # to pull the extras; the image's own oras comes from the extras below.
 # renovate: datasource=github-releases depName=oras-project/oras versioning=semver extractVersion=^v(?<version>.+)$
-ORAS_VERSION="1.3.6"
+ORAS_VERSION="1.4.0"
 ORAS_ASSET="oras_${ORAS_VERSION}_linux_amd64.tar.gz"
 ORAS_BASE="https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}"
 mkdir -p /tmp/oras
