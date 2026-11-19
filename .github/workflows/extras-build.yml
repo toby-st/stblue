@@ -65,7 +65,7 @@ jobs:
 
                     # renovate: datasource=github-releases depName=kubevirt/kubevirt versioning=semver extractVersion=^v(?<version>.+)$
                     - name: virtctl
-                      version: "1.9.1"
+                      version: "1.10.0"
                       url: "https://github.com/kubevirt/kubevirt/releases/download/v{version}/\
                           virtctl-v{version}-linux-amd64"
                       # virtctl publishes no checksum file — check against the digest
@@ -82,7 +82,7 @@ jobs:
 
                     # renovate: datasource=github-releases depName=argoproj/argo-cd versioning=semver extractVersion=^v(?<version>.+)$
                     - name: argocd
-                      version: "3.6.1"
+                      version: "3.6.2"
                       url: "https://github.com/argoproj/argo-cd/releases/download/v{version}/\
                           argocd-linux-amd64"
                       sha: "https://github.com/argoproj/argo-cd/releases/download/v{version}/\
@@ -290,7 +290,7 @@ jobs:
                     # Retired from Fedora 45 (fails to build); ship just the client.
                     # renovate: datasource=github-releases depName=etcd-io/etcd versioning=semver extractVersion=^v(?<version>.+)$
                     - name: etcdctl
-                      version: "3.7.3"
+                      version: "3.7.4"
                       url: "https://github.com/etcd-io/etcd/releases/download/v{version}/\
                           etcd-v{version}-linux-amd64.tar.gz"
                       sha: "https://github.com/etcd-io/etcd/releases/download/v{version}/\
