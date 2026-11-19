@@ -676,7 +676,12 @@ jobs:
               env:
                   TOOL_NAME: ${{ matrix.tool.name }}
               run: |
-                  rpmbuild -bb "$HOME/rpmbuild/SPECS/${TOOL_NAME}.spec"
+                  # Ubuntu 26.04's rpm 6 writes v6 packages by default. chunkah
+                  # 0.7.1 (in fedora-bootc) can't read v6 rpmdb entries, which
+                  # have no SIZE tag, so the bootc rechunk fails with "rpm command
+                  # killed by signal 13". Build v4 until a fixed chunkah ships:
+                  # https://github.com/coreos/chunkah/issues/189
+                  rpmbuild -bb --define '_rpmformat 4' "$HOME/rpmbuild/SPECS/${TOOL_NAME}.spec"
                   mkdir -p out
                   cp "$HOME/rpmbuild/RPMS/x86_64/"*.rpm out/
                   ls -la out/
@@ -685,6 +690,11 @@ jobs:
               run: |
                   rpm -qip out/*.rpm
                   rpm -qlp out/*.rpm
+                  format="$(rpm -qp --qf '%{RPMFORMAT}' out/*.rpm)"
+                  if [ "$format" != 4 ]; then
+                      echo "::error::expected a v4 RPM, got v${format}"
+                      exit 1
+                  fi
 
             - name: Write smoke-test plan
               # A tiny TSV one-liner per RPM that the test job aggregates. Format:
