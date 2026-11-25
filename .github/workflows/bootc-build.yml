@@ -77,16 +77,20 @@ jobs:
       - name: Build Image
         run: |
           set -ouex pipefail
-          sudo --preserve-env=MOK_PRIV_B64 podman build \
+          sudo --preserve-env=MOK_PRIV_B64,GH_TOKEN podman build \
             --build-arg IMAGE_NAME=${{ matrix.image_name }} \
             --build-arg MAJOR_VERSION=${{ env.MAJOR_VERSION }} \
             --build-arg BASE_IMAGE=${{ env.BASE_IMAGE }} \
             --secret id=mok_priv_b64,env=MOK_PRIV_B64 \
+            --secret id=gh_token,env=GH_TOKEN \
             -t localhost/${{ env.IMAGE_NAME }}:unchunked \
             -f ./Containerfile.bootc \
             .
         env:
           MOK_PRIV_B64: ${{ secrets.MOK_PRIV_B64 }}
+          # only for api.github.com lookups: unauthenticated calls are limited to 60
+          # an hour per IP, and hosted runners share IPs
+          GH_TOKEN: ${{ github.token }}
 
       # Split the image into content-based layers, so an update only downloads
       # the packages that changed. Uses the chunkah that ships in fedora-bootc.
