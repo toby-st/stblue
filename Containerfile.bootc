@@ -7,6 +7,19 @@ FROM scratch AS ctx
 COPY versions /versions
 COPY bootc-build.sh /build.sh
 
+# GitHub API lookups get their own stage, so the token (which can push packages in
+# CI) is never readable by third-party scripts in the main build. Without the
+# secret, e.g. in a local build, the lookup is just unauthenticated.
+FROM ${BASE_IMAGE}:${MAJOR_VERSION} AS releases
+RUN --mount=type=secret,id=gh_token \
+    set -e; \
+    token="$(cat /run/secrets/gh_token 2>/dev/null || true)"; \
+    mkdir /releases; \
+    curl -fsSL --retry 5 --retry-all-errors --retry-max-time 300 \
+        ${token:+-H "Authorization: Bearer $token"} \
+        -o /releases/displaylink.json \
+        https://api.github.com/repos/displaylink-rpm/displaylink-rpm/releases/latest
+
 FROM ${BASE_IMAGE}:${MAJOR_VERSION} AS main
 ARG IMAGE_NAME
 COPY files/ /
@@ -15,10 +28,11 @@ COPY files/ /
 # the tmpfs /tmp (downloads, the MOK key) ever reaches a layer
 RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=bind,from=ghcr.io/toby-st/gp:latest,source=/,target=/gp \
+    --mount=type=bind,from=releases,source=/releases,target=/releases \
     --mount=type=tmpfs,target=/tmp \
     --mount=type=secret,id=mok_priv_b64 \
     set -xe; \
-    cp /ctx/versions/$IMAGE_NAME/* /ctx/build.sh /gp/gp_ui.rpm /tmp/; \
+    cp /ctx/versions/$IMAGE_NAME/* /ctx/build.sh /gp/gp_ui.rpm /releases/displaylink.json /tmp/; \
     if [ -f /tmp/pre.sh ]; then bash /tmp/pre.sh; fi; \
     bash /tmp/build.sh; \
     MOK_PRIV_B64="$(cat /run/secrets/mok_priv_b64 2>/dev/null || echo '')" bash /tmp/post.sh; \

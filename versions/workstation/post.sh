@@ -19,6 +19,17 @@ fi
 
 RELEASE="$(rpm -E %fedora)"
 
+# Fail on HTTP errors and retry everything, including 403/429 throttling and
+# dropped connections. Always write to a file: a retry after a partial transfer
+# would send the data twice down a pipe.
+CURL=(curl -fsSL --retry 5 --retry-all-errors --retry-max-time 300)
+# print a URL's content, for small files
+fetch() {
+    local out
+    out="$(mktemp -p /tmp)"
+    "${CURL[@]}" -o "$out" "$1" && cat "$out"
+}
+
 MOK_DER="/usr/local/etc/mok.der"
 MOK_PRIV="/tmp/mok.priv"
 
@@ -51,17 +62,23 @@ mok_certificate="$MOK_DER"
 EOF
 
 mkdir -p /usr/share/flatpak/remotes.d/ && \
-    curl -L https://dl.flathub.org/repo/flathub.flatpakrepo -o /usr/share/flatpak/remotes.d/flathub.flatpakrepo
+    "${CURL[@]}" https://dl.flathub.org/repo/flathub.flatpakrepo -o /usr/share/flatpak/remotes.d/flathub.flatpakrepo
 rm /usr/lib/systemd/system/flatpak-add-fedora-repos.service || true
 
 # Install displaylink (userspace + evdi dkms source). tsflags=noscripts skips
-# the %post systemctl invocations that fail in a container.
-LATEST_RELEASE=$(curl -s https://api.github.com/repos/displaylink-rpm/displaylink-rpm/releases/latest)
+# the %post systemctl invocations that fail in a container. displaylink.json is
+# the latest release, fetched in the Containerfile's releases stage.
+LATEST_RELEASE=$(cat /tmp/displaylink.json)
 RPM_URL=$(echo "$LATEST_RELEASE" | grep -oP "https://github\.com/displaylink-rpm/displaylink-rpm/releases/download/[^/]+/fedora-${RELEASE}-[^\"]+\.x86_64\.rpm" || true)
 if [[ -z "$RPM_URL" ]]; then
     RPM_URL=$(echo "$LATEST_RELEASE" | grep -oP "https://github\.com/displaylink-rpm/displaylink-rpm/releases/download/[^/]+/fedora-43-[^\"]+\.x86_64\.rpm" || true)
 fi
-dnf install -y --setopt=tsflags=noscripts "$RPM_URL"
+if [[ -z "$RPM_URL" ]]; then
+    echo "ERROR: could not determine latest displaylink rpm." >&2
+    exit 1
+fi
+"${CURL[@]}" "$RPM_URL" -o /tmp/displaylink.rpm
+dnf install -y --setopt=tsflags=noscripts /tmp/displaylink.rpm
 
 # Build and install evdi. dkms handles signing (per framework.conf above)
 # and xz-compressing the module into /lib/modules/$KERNEL_VER/extra/.
@@ -81,7 +98,7 @@ shred -u "$MOK_PRIV"
 pipx install --backend pip --system-site-packages --global solaar
 
 # Load Logitech HID kernel modules on boot
-curl https://raw.githubusercontent.com/pwr-Solaar/Solaar/refs/heads/master/rules.d-uinput/42-logitech-unify-permissions.rules > /etc/udev/rules.d/42-logitech-unify-permissions.rules
+"${CURL[@]}" https://raw.githubusercontent.com/pwr-Solaar/Solaar/refs/heads/master/rules.d-uinput/42-logitech-unify-permissions.rules -o /etc/udev/rules.d/42-logitech-unify-permissions.rules
 echo "hid-logitech-dj" >> /etc/modules-load.d/logitech.conf && echo hid-logitech-hidpp >> /etc/modules-load.d/logitech.conf
 
 # Fedora no longer ships oras, so fetch a pinned, checksum-verified binary just
@@ -91,8 +108,8 @@ ORAS_VERSION="1.4.0"
 ORAS_ASSET="oras_${ORAS_VERSION}_linux_amd64.tar.gz"
 ORAS_BASE="https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}"
 mkdir -p /tmp/oras
-curl -fsSL "${ORAS_BASE}/${ORAS_ASSET}" -o "/tmp/oras/${ORAS_ASSET}"
-curl -fsSL "${ORAS_BASE}/oras_${ORAS_VERSION}_checksums.txt" \
+"${CURL[@]}" "${ORAS_BASE}/${ORAS_ASSET}" -o "/tmp/oras/${ORAS_ASSET}"
+fetch "${ORAS_BASE}/oras_${ORAS_VERSION}_checksums.txt" \
     | awk -v a="$ORAS_ASSET" '$2 == a' > /tmp/oras/checksums.txt
 (cd /tmp/oras && sha256sum -c checksums.txt && tar -xzf "$ORAS_ASSET" oras)
 
@@ -119,52 +136,54 @@ dnf install -y azure-cli
 
 
 #install latest stable proton-pass
-PROTON_PASS_JSON=$(curl -s https://proton.me/download/PassDesktop/linux/x64/version.json)
+PROTON_PASS_JSON=$(fetch https://proton.me/download/PassDesktop/linux/x64/version.json)
 PROTON_PASS_RPM_URL=$(echo "$PROTON_PASS_JSON" | jq -r '[.Releases[] | select(.CategoryName == "Stable")][0].File[] | select(.Identifier | contains("rpm")) | .Url')
 PROTON_PASS_SHA512=$(echo "$PROTON_PASS_JSON" | jq -r '[.Releases[] | select(.CategoryName == "Stable")][0].File[] | select(.Identifier | contains("rpm")) | .Sha512CheckSum')
 if [[ -z "$PROTON_PASS_RPM_URL" || -z "$PROTON_PASS_SHA512" ]]; then
     echo "ERROR: could not determine latest stable proton-pass rpm." >&2
     exit 1
 fi
-curl -L "$PROTON_PASS_RPM_URL" -o /tmp/proton-pass.rpm
+"${CURL[@]}" "$PROTON_PASS_RPM_URL" -o /tmp/proton-pass.rpm
 echo "$PROTON_PASS_SHA512  /tmp/proton-pass.rpm" | sha512sum -c -
 dnf install -y /tmp/proton-pass.rpm
 rpm -q proton-pass
 
 #install latest stable proton-pass-cli
-PASS_CLI_JSON=$(curl -s https://proton.me/download/pass-cli/versions.json)
+PASS_CLI_JSON=$(fetch https://proton.me/download/pass-cli/versions.json)
 PASS_CLI_URL=$(echo "$PASS_CLI_JSON" | jq -r '.passCliVersions.urls.linux.x86_64.url')
 PASS_CLI_HASH=$(echo "$PASS_CLI_JSON" | jq -r '.passCliVersions.urls.linux.x86_64.hash')
 if [[ -z "$PASS_CLI_URL" || -z "$PASS_CLI_HASH" ]]; then
     echo "ERROR: could not determine latest stable pass-cli binary." >&2
     exit 1
 fi
-curl -L "$PASS_CLI_URL" -o /usr/local/bin/pass-cli
+"${CURL[@]}" "$PASS_CLI_URL" -o /usr/local/bin/pass-cli
 echo "$PASS_CLI_HASH  /usr/local/bin/pass-cli" | sha256sum -c -
 chmod +x /usr/local/bin/pass-cli
 
 
 #install eval
-VERSION=$(curl -s https://api.github.com/repos/opendidac/opendidac_desktop_release/releases/latest | grep -oP '"tag_name": "\K[^"]+')
-if [[ -z "$VERSION" ]]; then
+# only the tag is needed, so follow the redirect instead of using the rate-limited API
+VERSION=$("${CURL[@]}" -I -o /dev/null -w '%{url_effective}' https://github.com/opendidac/opendidac_desktop_release/releases/latest)
+if [[ "$VERSION" != */releases/tag/* ]]; then
     echo "ERROR: could not determine latest opendidac_desktop release version." >&2
     exit 1
 fi
-curl -L "https://github.com/opendidac/opendidac_desktop_release/releases/download/${VERSION}/opendidac_desktop-${VERSION#v}-1.x86_64.rpm" -o /tmp/opendidac_desktop.rpm
+VERSION="${VERSION##*/}"
+"${CURL[@]}" "https://github.com/opendidac/opendidac_desktop_release/releases/download/${VERSION}/opendidac_desktop-${VERSION#v}-1.x86_64.rpm" -o /tmp/opendidac_desktop.rpm
 # upstream doesn't sign the rpm, and rpm 6 (F45+) refuses unsigned packages by default
 rpm -i --replacefiles --nosignature /tmp/opendidac_desktop.rpm
 rpm -q opendidac_desktop
 
 #install latest staruml
 STARUML_BASE="https://files.staruml.io/releases-v7"
-STARUML_YML=$(curl -s "$STARUML_BASE/latest-linux.yml")
+STARUML_YML=$(fetch "$STARUML_BASE/latest-linux.yml")
 STARUML_RPM=$(echo "$STARUML_YML" | grep -oP '^\s*- url: \K\S+\.x86_64\.rpm' || true)
 STARUML_SHA512=$(echo "$STARUML_YML" | grep -A1 -F "$STARUML_RPM" | grep -oP '^\s*sha512: \K\S+' || true)
 if [[ -z "$STARUML_RPM" || -z "$STARUML_SHA512" ]]; then
     echo "ERROR: could not determine latest staruml rpm." >&2
     exit 1
 fi
-curl -L "$STARUML_BASE/$STARUML_RPM" -o /tmp/staruml.rpm
+"${CURL[@]}" "$STARUML_BASE/$STARUML_RPM" -o /tmp/staruml.rpm
 # latest-linux.yml carries a base64-encoded sha512, not hex
 if [[ "$(openssl dgst -sha512 -binary /tmp/staruml.rpm | base64 -w0)" != "$STARUML_SHA512" ]]; then
     echo "ERROR: staruml rpm checksum mismatch." >&2
@@ -192,7 +211,8 @@ ln -s /var/paloaltonetworks /opt/paloaltonetworks
 dnf install -y /tmp/gp_ui.rpm
 
 #install EVE-NG client tools
-wget -qO- https://raw.githubusercontent.com/SmartFinn/eve-ng-integration/master/install.sh | sh
+"${CURL[@]}" https://raw.githubusercontent.com/SmartFinn/eve-ng-integration/master/install.sh -o /tmp/eve-ng-install.sh
+sh /tmp/eve-ng-install.sh
 
 dnf install -y --setopt=tsflags=noscripts proton-vpn-gnome-desktop
 
@@ -204,9 +224,9 @@ HPLIP_PLUGIN="hplip-${HPLIP_VERSION}-plugin.run"
 HPLIP_KEY="82FFA7C6AA7411D934BDE173AC69536A2CF3A243"
 mkdir -p /tmp/hplip-plugin/gnupg
 chmod 700 /tmp/hplip-plugin/gnupg
-curl -fsSL "https://www.openprinting.org/download/printdriver/auxfiles/HP/plugins/${HPLIP_PLUGIN}" -o "/tmp/hplip-plugin/${HPLIP_PLUGIN}"
-curl -fsSL "https://www.openprinting.org/download/printdriver/auxfiles/HP/plugins/${HPLIP_PLUGIN}.asc" -o "/tmp/hplip-plugin/${HPLIP_PLUGIN}.asc"
-curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x${HPLIP_KEY}" \
+"${CURL[@]}" "https://www.openprinting.org/download/printdriver/auxfiles/HP/plugins/${HPLIP_PLUGIN}" -o "/tmp/hplip-plugin/${HPLIP_PLUGIN}"
+"${CURL[@]}" "https://www.openprinting.org/download/printdriver/auxfiles/HP/plugins/${HPLIP_PLUGIN}.asc" -o "/tmp/hplip-plugin/${HPLIP_PLUGIN}.asc"
+fetch "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x${HPLIP_KEY}" \
     | gpg --homedir /tmp/hplip-plugin/gnupg --batch --import
 gpg --homedir /tmp/hplip-plugin/gnupg --batch --status-fd 1 \
     --verify "/tmp/hplip-plugin/${HPLIP_PLUGIN}.asc" "/tmp/hplip-plugin/${HPLIP_PLUGIN}" \
