@@ -82,7 +82,7 @@ jobs:
 
                     # renovate: datasource=github-releases depName=argoproj/argo-cd versioning=semver extractVersion=^v(?<version>.+)$
                     - name: argocd
-                      version: "3.6.2"
+                      version: "3.6.3"
                       url: "https://github.com/argoproj/argo-cd/releases/download/v{version}/\
                           argocd-linux-amd64"
                       sha: "https://github.com/argoproj/argo-cd/releases/download/v{version}/\
